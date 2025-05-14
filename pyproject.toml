@@ -4,6 +4,94 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [
-    "sqlmodel>=0.0.24",
+dependencies = ["sqlmodel>=0.0.24"]
+
+
+[tool.ruff]
+line-length = 120
+indent-width = 4
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "A",     # flake8-builtins
+    "ANN",   # flake8-annotations (type hints)
+    "ASYNC", # async-specific issues
+    "B",     # flake8-bugbear
+    "BLE",   # flake8-blind-except)
+    "C4",    # flake8-comprehensions
+    "C90",   # McCabe complexity
+    "COM",   # flake8-commas
+    "DTZ",   # flake8-datetimez
+    "E",     # pycodestyle errors
+    "EM",    # flake8-errmsg
+    "ERA",   # commented-out code
+    "EXE",   # flake8-executable
+    "F",     # pyflakes
+    "FA",    # flake8-future-annotations
+    "FAST",  # fastapi
+    "FBT",   # flake8-boolean-trap
+    "FLY",   # flynt (string formatting)
+    "G",     # flake8-logging-format
+    "I",     # isort
+    "ICN",   # flake8-import-conventions
+    "INP",   # implicit namespace packages
+    "INT",   # flake8-gettext
+    "ISC",   # flake8-implicit-str-concat
+    "N",     # pep8-naming
+    "PD",    # pandas-vet (pandas-specific checks)
+    "PERF",  # performance issues
+    "PIE",   # flake8-pie
+    "PL",    # Pylint-style checks (e.g., unreachable code, redundant operations)
+    "PT",    # flake8-pytest-style
+    "PTH",   # flake8-use-pathlib
+    "Q",     # flake8-quotes
+    "RET",   # flake8-return
+    "RSE",   # flake8-raise
+    "RUF",   # Ruff-specific rules
+    "S",     # bandit (security)
+    "SIM",   # flake8-simplify
+    "SLF",   # flake8-self
+    "T10",   # flake8-debugger
+    "T20",   # flake8-print
+    "TC",    # flake8-type-checking (TC)
+    "TID",   # flake8-tidy-imports
+    "TRY",   # tryceratops (exception handling)
+    "UP",    # pyupgrade
+    "W",     # pycodestyle warnings
+    "YTT",   # flake8-2020 (Y2K issues)
 ]
+
+ignore = [
+    # "E501",   # line too long (handled by formatter)
+    "S105", # hardcoded passwords (common false positive in configs)
+    "S106", # hardcoded passwords
+    #"PT024", # @pytest.mark.asyncio decorators applied to fixtures
+    # "RET505", # unnecessary else after return (stylistic in FastAPI)
+    "B008", # function call in default arg (common in FastAPI dependencies)
+    # "PD011",  # pandas .values usage (context-dependent)
+    "RUF012", # mutable class attributes. Relevant for SQLAlchemy models, which may use mutable defaults.
+    # "SIM102", # nested if statements. Stylistic, but FastAPI route logic may prefer nested conditions for clarity.
+    # "UP038",  # isinstance tuple: Avoids performance issues noted in Ruff’s GitHub.
+]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.per-file-ignores]
+"test*.py" = ["S101"] # Uses of the assert keyword.
+
+[tool.ruff.lint.flake8-pytest-style]
+mark-parentheses = false
+fixture-parentheses = false
+
+[tool.ruff.lint.isort]
+force-single-line = true # Enforces one import per line
+lines-after-imports = 2  # Optional: adds blank lines after imports for clarity
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
