@@ -1,5 +1,6 @@
 """Command-line tool to fetch forecast data from Streem Energy API."""
 
+import os
 from datetime import datetime
 from datetime import timedelta
 from enum import Enum
@@ -48,7 +49,6 @@ def load_credentials() -> tuple[str, str]:
         Tuple containing username and password.
     """
     load_dotenv()
-    import os
 
     username = os.getenv(STREEM_USERNAME)
     password = os.getenv(STREEM_PASSWORD)
