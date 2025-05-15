@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from rich.console import Console
 from rich.pretty import pprint
 
-from constants.time_zones import PARIS_TZ
+from app.constants.time_zones import PARIS_TZ
 
 
 console = Console()
