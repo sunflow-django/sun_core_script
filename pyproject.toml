@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "alembic>=1.15.2",
     "dotenv>=0.9.9",
     "mysql-connector-python>=9.3.0",
     "requests>=2.32.3",
@@ -18,6 +19,7 @@ dependencies = [
 line-length = 120
 indent-width = 4
 target-version = "py312"
+exclude = ["alembic"]
 
 [tool.ruff.lint]
 select = [
@@ -104,7 +106,4 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 
 [dependency-groups]
-dev = [
-    "pytest>=8.3.5",
-    "pytest-mock>=3.14.0",
-]
+dev = ["pytest>=8.3.5", "pytest-mock>=3.14.0"]
