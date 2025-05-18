@@ -19,7 +19,7 @@ from yarl import URL
 from app.core.utils import find_env_file
 
 
-MYSQL_SCHEME: str = "mysql+psycopg"
+MYSQL_SCHEME: str = "mysql+pymysql"
 
 # Load env
 current_dir = Path(__file__).parent
