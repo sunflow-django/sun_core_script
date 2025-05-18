@@ -7,7 +7,6 @@ requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.15.2",
     "dotenv>=0.9.9",
-    "mysql-connector-python>=9.3.0",
     "pydantic[email]>=2.11.4",
     "pydantic-settings>=2.9.1",
     "requests>=2.32.3",
@@ -15,6 +14,7 @@ dependencies = [
     "sqlmodel>=0.0.24",
     "typer>=0.15.4",
     "yarl>=1.20.0",
+    "pymysql>=1.1.1",
 ]
 
 
