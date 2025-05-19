@@ -4,6 +4,12 @@ import typing
 import requests
 
 
+# Definitions
+# Product: A traded product. Ex.: "CWE_H_DA_1" for CWE Hour Day Ahead 19.05.2025. It is available in several area codes
+# Area codes: A country. Ex.: "FR" for France
+# Auction: A trading day for a product (no area code). Ex.: "CWE_H_DA_1-20250519", for CWE Hour Day Ahead 19.05.2025
+# Contract:  A hour for an auction (no area code). Ex: "CWE_H_DA_1-20250520-01"
+
 # Urls
 BASE_URL_TEST = "https://auctions-api.test.nordpoolgroup.com"
 TOKEN_URL_TEST = "https://sts.test.nordpoolgroup.com/connect/token"
@@ -28,9 +34,15 @@ ENDPOINTS = {
 
 # Constants
 TIMEOUT = 3  # seconds
+GET = "GET"
+POST = "POST"
+PATCH = "PATCH"
+
+# For client ID / client secret / client authorization string
+# Refer to https://developers.nordpoolgroup.com/reference/clients-and-scopes and
+# https://developers.nordpoolgroup.com/reference/auth-introduction#section-request-header
 AUCTION_API = "auction_api"
 CLIENT_AUCTION_API = "client_auction_api"
-
 CLIENT_AUTHORISATION_STRING = base64.b64encode(f"{CLIENT_AUCTION_API}:{CLIENT_AUCTION_API}".encode()).decode()
 
 
@@ -71,10 +83,6 @@ class AuctionAPI:
             "client_id": CLIENT_AUCTION_API,
             "client_secret": CLIENT_AUCTION_API,
         }
-
-        # For client ID / client secret / client authorization string
-        # Refer to https://developers.nordpoolgroup.com/reference/clients-and-scopes and
-        # https://developers.nordpoolgroup.com/reference/auth-introduction#section-request-header
 
         headers = {
             "Authorization": f"Basic {CLIENT_AUTHORISATION_STRING}",
@@ -118,7 +126,7 @@ class AuctionAPI:
         close_bidding_from: str | None = None,
         close_bidding_to: str | None = None,
     ) -> list[dict[str, typing.Any]]:
-        """Get a list of auctions.
+        """Get auctions that are closed for bidding during the given time period.
 
         Args:
             close_bidding_from (str | None): Filter auctions with close bidding from this date-time.
@@ -136,7 +144,22 @@ class AuctionAPI:
             params["closeBiddingFrom"] = close_bidding_from
         if close_bidding_to:
             params["closeBiddingTo"] = close_bidding_to
-        return self._make_request("GET", url, params=params)
+        return self._make_request(GET, url, params=params)
+
+    def get_auction_detail(self, auction_id: str) -> list[dict[str, typing.Any]]:
+        """Get details of a specific auction.
+
+        Args:
+            auction_id (str): The ID of the auction.
+
+        Returns:
+            list[dict[str, Any]]: List of auction multi-resolution response objects.
+
+        Raises:
+            requests.HTTPError: If the API request fails with a non-200 status code.
+        """
+        url = f"{self.base_url}{ENDPOINTS['auction'].format(version=self.version, auctionId=auction_id)}"
+        return self._make_request(GET, url)
 
     def get_orders(
         self,
@@ -144,7 +167,9 @@ class AuctionAPI:
         portfolios: list[str] | None = None,
         area_codes: list[str] | None = None,
     ) -> dict[str, typing.Any]:
-        """Get orders for a specific auction.
+        """
+        Get orders placed for a specific auction, limited to company, portfolios and areas user has access to.
+        Selection can be filtered by specifying portfolios and areas in the search parameters. Returns all order types.
 
         Args:
             auction_id (str): The ID of the auction.
@@ -163,7 +188,7 @@ class AuctionAPI:
             params["portfolios"] = portfolios
         if area_codes:
             params["areaCodes"] = area_codes
-        return self._make_request("GET", url, params=params)
+        return self._make_request(GET, url, params=params)
 
     def get_trades(
         self,
@@ -171,7 +196,9 @@ class AuctionAPI:
         portfolios: list[str] | None = None,
         area_codes: list[str] | None = None,
     ) -> list[dict[str, typing.Any]]:
-        """Get trades for a specific auction.
+        """
+        Get trades for a specific auction, limited to company, portfolios and areas user has access to.
+        Selection can be filtered by specifying portfolios and areas in the search parameters. Returns all ord
 
         Args:
             auction_id (str): The ID of the auction.
@@ -190,66 +217,24 @@ class AuctionAPI:
             params["portfolios"] = portfolios
         if area_codes:
             params["areaCodes"] = area_codes
-        return self._make_request("GET", url, params=params)
+        return self._make_request(GET, url, params=params)
 
-    def get_prices(self, auction_id: str) -> dict[str, typing.Any]:
-        """Get prices for a specific auction.
+    def post_block_order(self, block_list: dict[str, typing.Any]) -> dict[str, typing.Any]:
+        """Post a new block list.
 
         Args:
-            auction_id (str): The ID of the auction.
+            block_list (dict[str, Any]): The block list data.
 
         Returns:
-            dict[str, Any]: Auction price object.
+            dict[str, Any]: Created block list response.
 
         Raises:
             requests.HTTPError: If the API request fails with a non-200 status code.
         """
-        url = f"{self.base_url}{ENDPOINTS['prices'].format(version=self.version, auctionId=auction_id)}"
-        return self._make_request("GET", url)
+        url = f"{self.base_url}{ENDPOINTS['block_orders'].format(version=self.version)}"
+        return self._make_request(POST, url, json=block_list)
 
-    def get_portfolio_volumes(
-        self,
-        auction_id: str,
-        portfolios: list[str] | None = None,
-        area_codes: list[str] | None = None,
-    ) -> dict[str, typing.Any]:
-        """Get portfolio volumes for a specific auction.
-
-        Args:
-            auction_id (str): The ID of the auction.
-            portfolios (list[str] | None): List of portfolios to filter.
-            area_codes (list[str] | None): List of area codes to filter.
-
-        Returns:
-            dict[str, Any]: Portfolio volume response.
-
-        Raises:
-            requests.HTTPError: If the API request fails with a non-200 status code.
-        """
-        url = f"{self.base_url}{ENDPOINTS['portfolio_volumes'].format(version=self.version, auctionId=auction_id)}"
-        params = {}
-        if portfolios:
-            params["portfolios"] = portfolios
-        if area_codes:
-            params["areaCodes"] = area_codes
-        return self._make_request("GET", url, params=params)
-
-    def get_auction(self, auction_id: str) -> list[dict[str, typing.Any]]:
-        """Get details of a specific auction.
-
-        Args:
-            auction_id (str): The ID of the auction.
-
-        Returns:
-            list[dict[str, Any]]: List of auction multi-resolution response objects.
-
-        Raises:
-            requests.HTTPError: If the API request fails with a non-200 status code.
-        """
-        url = f"{self.base_url}{ENDPOINTS['auction'].format(version=self.version, auctionId=auction_id)}"
-        return self._make_request("GET", url)
-
-    def get_block_list(self, order_id: str) -> dict[str, typing.Any]:
+    def get_block_order(self, order_id: str) -> dict[str, typing.Any]:
         """Get a block list by order ID.
 
         Args:
@@ -262,7 +247,7 @@ class AuctionAPI:
             requests.HTTPError: If the API request fails with a non-200 status code.
         """
         url = f"{self.base_url}{ENDPOINTS['block_order'].format(version=self.version, orderId=order_id)}"
-        return self._make_request("GET", url)
+        return self._make_request(GET, url)
 
     def patch_block_order(self, order_id: str, patch_data: dict[str, typing.Any]) -> dict[str, typing.Any]:
         """Patch a block order.
@@ -278,22 +263,22 @@ class AuctionAPI:
             requests.HTTPError: If the API request fails with a non-200 status code.
         """
         url = f"{self.base_url}{ENDPOINTS['block_order'].format(version=self.version, orderId=order_id)}"
-        return self._make_request("PATCH", url, json=patch_data)
+        return self._make_request(PATCH, url, json=patch_data)
 
-    def post_block_list(self, block_list: dict[str, typing.Any]) -> dict[str, typing.Any]:
-        """Post a new block list.
+    def post_curve_order(self, curve_order: dict[str, typing.Any]) -> dict[str, typing.Any]:
+        """Post a new curve order.
 
         Args:
-            block_list (dict[str, Any]): The block list data.
+            curve_order (dict[str, Any]): The curve order data.
 
         Returns:
-            dict[str, Any]: Created block list response.
+            dict[str, Any]: Created curve order response.
 
         Raises:
             requests.HTTPError: If the API request fails with a non-200 status code.
         """
-        url = f"{self.base_url}{ENDPOINTS['block_orders'].format(version=self.version)}"
-        return self._make_request("POST", url, json=block_list)
+        url = f"{self.base_url}{ENDPOINTS['curve_orders'].format(version=self.version)}"
+        return self._make_request(POST, url, json=curve_order)
 
     def get_curve_order(self, order_id: str) -> dict[str, typing.Any]:
         """Get a curve order by order ID.
@@ -308,7 +293,7 @@ class AuctionAPI:
             requests.HTTPError: If the API request fails with a non-200 status code.
         """
         url = f"{self.base_url}{ENDPOINTS['curve_order'].format(version=self.version, orderId=order_id)}"
-        return self._make_request("GET", url)
+        return self._make_request(GET, url)
 
     def patch_curve_order(self, order_id: str, patch_data: dict[str, typing.Any]) -> dict[str, typing.Any]:
         """Patch a curve order.
@@ -324,22 +309,24 @@ class AuctionAPI:
             requests.HTTPError: If the API request fails with a non-200 status code.
         """
         url = f"{self.base_url}{ENDPOINTS['curve_order'].format(version=self.version, orderId=order_id)}"
-        return self._make_request("PATCH", url, json=patch_data)
+        return self._make_request(PATCH, url, json=patch_data)
 
-    def post_curve_order(self, curve_order: dict[str, typing.Any]) -> dict[str, typing.Any]:
-        """Post a new curve order.
+    def get_prices(self, auction_id: str) -> dict[str, typing.Any]:
+        """
+        Get prices for a specific auction, user has access to.
+        🚩 Prices are only available for seven days in the past.
 
         Args:
-            curve_order (dict[str, Any]): The curve order data.
+            auction_id (str): The ID of the auction.
 
         Returns:
-            dict[str, Any]: Created curve order response.
+            dict[str, Any]: Auction price object.
 
         Raises:
             requests.HTTPError: If the API request fails with a non-200 status code.
         """
-        url = f"{self.base_url}{ENDPOINTS['curve_orders'].format(version=self.version)}"
-        return self._make_request("POST", url, json=curve_order)
+        url = f"{self.base_url}{ENDPOINTS['prices'].format(version=self.version, auctionId=auction_id)}"
+        return self._make_request(GET, url)
 
     def get_inspection_result_for_order(self, external_auction_id: str, order_id: str) -> dict[str, typing.Any]:
         """Get inspection result for an order.
@@ -359,7 +346,7 @@ class AuctionAPI:
             externalAuctionId=external_auction_id,
             orderId=order_id,
         )
-        return self._make_request("GET", url)
+        return self._make_request(GET, url)
 
     def get_state(self) -> None:
         """Get the state of the API.
@@ -374,3 +361,31 @@ class AuctionAPI:
         headers = {"Authorization": f"Bearer {self.token}"}
         response = requests.get(url, headers=headers, timeout=TIMEOUT)
         response.raise_for_status()
+
+    def get_portfolio_volumes(
+        self,
+        auction_id: str,
+        portfolios: list[str] | None = None,
+        area_codes: list[str] | None = None,
+    ) -> dict[str, typing.Any]:
+        """Get portfolio volumes for a specific auction, limited by portfolios and areas the user has access to.
+        Selection can be filtered by specifying portfolios and areas in the search parameters.
+
+        Args:
+            auction_id (str): The ID of the auction.
+            portfolios (list[str] | None): List of portfolios to filter.
+            area_codes (list[str] | None): List of area codes to filter.
+
+        Returns:
+            dict[str, Any]: Portfolio volume response.
+
+        Raises:
+            requests.HTTPError: If the API request fails with a non-200 status code.
+        """
+        url = f"{self.base_url}{ENDPOINTS['portfolio_volumes'].format(version=self.version, auctionId=auction_id)}"
+        params = {}
+        if portfolios:
+            params["portfolios"] = portfolios
+        if area_codes:
+            params["areaCodes"] = area_codes
+        return self._make_request(GET, url, params=params)

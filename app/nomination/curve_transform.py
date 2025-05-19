@@ -20,8 +20,8 @@ def transform_curve(
                 {"date": "2025-05-20T10:00:00+02:00", "data": 1463.9},
                 {"date": "2025-05-20T11:00:00+02:00", "data": 1500.0},
             ]
-        auction_id: Auction ID for the output, as specified from Nordpool.
-        area_code: Area code for the output, as specified from Nordpool.
+        product_id: Product ID, as specified from Nordpool.
+        area_code: Area code , as specified from Nordpool.
         portfolio: Portfolio name for the output (free text).
 
     Returns:
@@ -43,9 +43,17 @@ def transform_curve(
         'portfolio': 'TestAuctions FR'}
 
     """
+    # Build auction_id based on first date in volume_data
     if not volume_data:
         return {"error": "Input data is empty"}
+    first_date_str = volume_data[0].get("date", None)
+    if not first_date_str:
+        return {"error": "First datapoint must has a 'date' attribute"}
+    first_date_obj = parse_iso8601(first_date_str)
+    auction_date = first_date_obj.strftime("%Y%m%d")
+    auction_id = f"{product_id}-{auction_date}"
 
+    # build curves
     curves: list[dict] = []
     for hour in volume_data:
         try:
@@ -59,10 +67,12 @@ def transform_curve(
             return {"error": f"Invalid date or volume format in entry {hour}: {e!s}"}
 
         # Format contractId as CWE_QH_DA_1-YYYYMMDD-HH
-        contract_date = date_obj.strftime("%Y%m%d")
+        # contractId reflects delivery day and it is next day after auctionId
+        # So for instance, auctionId CWE_H_DA_1-20190522 has contracts like CWE_H_DA_1-20190523-01
+        contract_date = (date_obj + timedelta(days=1)).strftime("%Y%m%d")
         # TODO: make this work for daylight saving time (ie.: 3a and 3b hours)
         contract_hour = f"{date_obj.hour + 1:02d}"
-        contract_id = f"{auction_id}-{contract_date}-{contract_hour}"
+        contract_id = f"{product_id}-{contract_date}-{contract_hour}"
 
         # Create curvePoints with fixed prices and volumes
         curve_points = [
