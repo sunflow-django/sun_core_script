@@ -1,4 +1,4 @@
-# ruff: noqa: PLR2004
+# ruff: noqa: PLR2004, PLR0913,ANN001
 from datetime import datetime
 
 import pytest
@@ -12,142 +12,246 @@ from app.nomination.curve_transform import transform_curve
 class TestTransformCurve:
     """Tests for the transform_curve function."""
 
-    def test_valid_input(self) -> None:
-        """Test transform_curve with valid input data."""
-        volume_data = [
-            {"date": "2025-05-20T10:00:00+02:00", "data": 1463.9},
-            {"date": "2025-05-20T11:00:00+02:00", "data": 1500.0},
-        ]
+    @pytest.mark.parametrize(
+        ("volume_data", "auction_id", "area_code", "portfolio", "expected_curves", "expected_volumes"),
+        [
+            # Standard valid input (multiple timestamps)
+            (
+                [
+                    {"date": "2025-05-20T10:00:00+02:00", "data": 1463.9},
+                    {"date": "2025-05-20T11:00:00+02:00", "data": 1500.0},
+                ],
+                "CWE_QH_DA_1",
+                "FR",
+                "TestAuctions FR",
+                [
+                    "CWE_QH_DA_1-20250520-11",
+                    "CWE_QH_DA_1-20250520-12",
+                ],
+                [-1.5, -1.5],
+            ),
+            # UTC timezone
+            (
+                [{"date": "2025-05-20T10:00:00+00:00", "data": 1463.9}],
+                "CWE_QH_DA_1",
+                "FR",
+                "TestAuctions FR",
+                ["CWE_QH_DA_1-20250520-11"],
+                [-1.5],
+            ),
+            # Custom parameters
+            (
+                [{"date": "2025-05-20T10:00:00+02:00", "data": 1463.9}],
+                "CUSTOM_AUCTION",
+                "DE",
+                "Custom Portfolio",
+                ["CUSTOM_AUCTION-20250520-11"],
+                [-1.5],
+            ),
+            # Non-integer volume
+            (
+                [{"date": "2025-05-20T10:00:00+02:00", "data": 1555.55}],
+                "CWE_QH_DA_1",
+                "FR",
+                "TestAuctions FR",
+                ["CWE_QH_DA_1-20250520-11"],
+                [-1.6],
+            ),
+            # Small volume
+            (
+                [{"date": "2025-05-20T10:00:00+02:00", "data": 100.0}],
+                "CWE_QH_DA_1",
+                "FR",
+                "TestAuctions FR",
+                ["CWE_QH_DA_1-20250520-11"],
+                [-0.1],
+            ),
+            # Zero volume
+            (
+                [{"date": "2025-05-20T10:00:00+02:00", "data": 0.0}],
+                "CWE_QH_DA_1",
+                "FR",
+                "TestAuctions FR",
+                ["CWE_QH_DA_1-20250520-11"],
+                [0.0],
+            ),
+            # Midnight hour
+            (
+                [{"date": "2025-05-20T00:00:00+02:00", "data": 1000.0}],
+                "CWE_QH_DA_1",
+                "FR",
+                "TestAuctions FR",
+                ["CWE_QH_DA_1-20250520-01"],
+                [-1.0],
+            ),
+            # End of day
+            (
+                [{"date": "2025-05-20T23:00:00+02:00", "data": 1000.0}],
+                "CWE_QH_DA_1",
+                "FR",
+                "TestAuctions FR",
+                ["CWE_QH_DA_1-20250520-24"],
+                [-1.0],
+            ),
+        ],
+        ids=[
+            "standard_valid_input",
+            "utc_timezone",
+            "custom_parameters",
+            "non_integer_volume",
+            "small_volume",
+            "zero_volume",
+            "midnight_hour",
+            "end_of_day",
+        ],
+    )
+    def test_valid_input(
+        self,
+        volume_data,
+        auction_id,
+        area_code,
+        portfolio,
+        expected_curves,
+        expected_volumes,
+    ) -> None:
+        """Test transform_curve with various valid inputs."""
         result = transform_curve(
             volume_data=volume_data,
-            auction_id="CWE_QH_DA_1",
-            area_code="FR",
-            portfolio="TestAuctions FR",
+            auction_id=auction_id,
+            area_code=area_code,
+            portfolio=portfolio,
         )
 
-        assert result["auctionId"] == "CWE_QH_DA_1"
-        assert result["areaCode"] == "FR"
-        assert result["portfolio"] == "TestAuctions FR"
+        assert result["auctionId"] == auction_id
+        assert result["areaCode"] == area_code
+        assert result["portfolio"] == portfolio
         assert result["comment"] is None
-        assert len(result["curves"]) == 2
+        assert len(result["curves"]) == len(volume_data)
 
-        # Check first curve
-        assert result["curves"][0]["contractId"] == "CWE_QH_DA_1-20250520-11"
-        assert len(result["curves"][0]["curvePoints"]) == 4
-        assert result["curves"][0]["curvePoints"][2]["volume"] == -1.5
-
-        # Check second curve
-        assert result["curves"][1]["contractId"] == "CWE_QH_DA_1-20250520-12"
-        assert result["curves"][1]["curvePoints"][2]["volume"] == -1.5
+        for i, curve in enumerate(result["curves"]):
+            assert curve["contractId"] == expected_curves[i]
+            assert len(curve["curvePoints"]) == 4
+            assert curve["curvePoints"][2]["volume"] == expected_volumes[i]
+            assert curve["curvePoints"][3]["volume"] == expected_volumes[i]
+            assert curve["curvePoints"][0] == {"price": -500.00, "volume": 0.00}
+            assert curve["curvePoints"][1] == {"price": -0.01, "volume": 0.00}
 
     def test_empty_input(self) -> None:
         """Test transform_curve with empty input data."""
         result = transform_curve(volume_data=[])
         assert result == {"error": "Input data is empty"}
 
-    def test_invalid_date_format(self) -> None:
-        """Test transform_curve with invalid date format (ex.: 99h)."""
-        volume_data = [{"date": "2025-05-20T99:00:00", "data": 1463.9}]
+    @pytest.mark.parametrize(
+        ("volume_data", "expected_error_contains"),
+        [
+            (
+                [{"date": "2025-05-20T99:00:00", "data": 1463.9}],
+                "Invalid ISO 8601 format",
+            ),
+            (
+                [{"timestamp": "2025-05-20T10:00:00+02:00", "data": 1463.9}],
+                "'date'",
+            ),
+            (
+                [{"date": "2025-05-20T10:00:00+02:00", "data": "invalid"}],
+                "could not convert string to float",
+            ),
+        ],
+        ids=["invalid_date_format", "missing_key", "invalid_data_type"],
+    )
+    def test_invalid_input(self, volume_data, expected_error_contains) -> None:
+        """Test transform_curve with invalid inputs."""
         result = transform_curve(volume_data=volume_data)
         assert "Invalid date or volume format" in result["error"]
+        assert expected_error_contains in result["error"]
 
-    def test_missing_key(self) -> None:
-        """Test transform_curve with missing key in input data."""
-        volume_data = [{"timestamp": "2025-05-20T10:00:00+02:00", "data": 1463.9}]
-        result = transform_curve(volume_data=volume_data)
-        assert "Invalid date or volume format" in result["error"]
-
-    def test_invalid_data_type(self) -> None:
-        """Test transform_curve with non-numeric data value."""
-        volume_data = [{"date": "2025-05-20T10:00:00+02:00", "data": "invalid"}]
-        result = transform_curve(volume_data=volume_data)
-        assert "Invalid date or volume format" in result["error"]
-
-    def test_different_timezone(self) -> None:
-        """Test transform_curve with different timezone."""
+    def test_dst_spring_forward(self) -> None:
+        """Test transform_curve during DST spring forward (March 30, 2025)."""
         volume_data = [
-            {"date": "2025-05-20T10:00:00+00:00", "data": 1463.9},  # UTC timezone
+            {"date": "2025-03-30T01:00:00+01:00", "data": 1000.0},  # CET
+            {"date": "2025-03-30T03:00:00+02:00", "data": 1000.0},  # CEST
         ]
         result = transform_curve(volume_data=volume_data)
-        assert result["curves"][0]["contractId"] == "CWE_QH_DA_1-20250520-11"
-        assert result["curves"][0]["curvePoints"][2]["volume"] == -1.5
+        assert result["curves"][0]["contractId"] == "CWE_QH_DA_1-20250330-02"
+        assert result["curves"][1]["contractId"] == "CWE_QH_DA_1-20250330-04"
+        assert result["curves"][0]["curvePoints"][2]["volume"] == -1.0
+        assert result["curves"][1]["curvePoints"][2]["volume"] == -1.0
 
-    def test_custom_parameters(self) -> None:
-        """Test transform_curve with custom auction_id, area_code, and portfolio."""
-        volume_data = [{"date": "2025-05-20T10:00:00+02:00", "data": 1463.9}]
-        result = transform_curve(
-            volume_data=volume_data,
-            auction_id="CUSTOM_AUCTION",
-            area_code="DE",
-            portfolio="Custom Portfolio",
-        )
-        assert result["auctionId"] == "CUSTOM_AUCTION"
-        assert result["areaCode"] == "DE"
-        assert result["portfolio"] == "Custom Portfolio"
-        assert result["curves"][0]["contractId"].startswith("CUSTOM_AUCTION-")
-
-    def test_curve_points_structure(self) -> None:
-        """Test the structure and values of curvePoints."""
-        volume_data = [{"date": "2025-05-20T10:00:00+02:00", "data": 1000.0}]
+    def test_dst_fall_back(self) -> None:
+        """Test transform_curve during DST fall back (October 26, 2025)."""
+        volume_data = [
+            {"date": "2025-10-26T02:00:00+02:00", "data": 1000.0},  # CEST
+            {"date": "2025-10-26T02:00:00+01:00", "data": 1000.0},  # CET
+        ]
         result = transform_curve(volume_data=volume_data)
-
-        curve_points = result["curves"][0]["curvePoints"]
-        assert len(curve_points) == 4
-        assert curve_points[0] == {"price": -500.00, "volume": 0.00}
-        assert curve_points[1] == {"price": -0.01, "volume": 0.00}
-        assert curve_points[2] == {"price": 0.00, "volume": -1.0}
-        assert curve_points[3] == {"price": 4000.00, "volume": -1.0}
+        assert result["curves"][0]["contractId"] == "CWE_QH_DA_1-20251026-03"
+        assert result["curves"][1]["contractId"] == "CWE_QH_DA_1-20251026-03"
+        assert result["curves"][0]["curvePoints"][2]["volume"] == -1.0
+        assert result["curves"][1]["curvePoints"][2]["volume"] == -1.0
 
 
 class TestParseISO8601:
     """Tests for the parse_iso8601 function."""
 
-    def test_valid_iso8601(self) -> None:
-        """Test parsing a valid ISO 8601 timestamp with timezone offset."""
-        result = parse_iso8601("2025-05-20T10:00:00+02:00")
-        expected = datetime(2025, 5, 20, 10, 0, 0, tzinfo=PARIS_TZ)
-        assert result == expected
-        assert result.tzname() == "UTC+02:00"
+    @pytest.mark.parametrize(
+        ("timestamp", "expected_datetime", "expected_tzname"),
+        [
+            (
+                "2025-05-20T10:00:00+02:00",
+                datetime(2025, 5, 20, 10, 0, 0, tzinfo=PARIS_TZ),
+                "UTC+02:00",
+            ),
+            (
+                "2025-05-20T10:00:00Z",
+                datetime(2025, 5, 20, 10, 0, 0, tzinfo=UTC_TZ),
+                "UTC",
+            ),
+            (
+                "2025-05-20T10:00+02:00",
+                datetime(2025, 5, 20, 10, 0, 0, tzinfo=PARIS_TZ),
+                "UTC+02:00",
+            ),
+            (
+                "2025-05-20T10:00:00.123456+02:00",
+                datetime(2025, 5, 20, 10, 0, 0, 123456, tzinfo=PARIS_TZ),
+                "UTC+02:00",
+            ),
+        ],
+        ids=["standard", "utc_z", "no_seconds", "fractional_seconds"],
+    )
+    def test_valid_iso8601(self, timestamp, expected_datetime, expected_tzname) -> None:
+        """Test parsing valid ISO 8601 timestamps."""
+        result = parse_iso8601(timestamp)
+        assert result == expected_datetime
+        assert result.tzname() == expected_tzname
 
-    def test_valid_iso8601_with_z(self) -> None:
-        """Test parsing a valid ISO 8601 timestamp with 'Z' (UTC)."""
-        result = parse_iso8601("2025-05-20T10:00:00Z")
-        expected = datetime(2025, 5, 20, 10, 0, 0, tzinfo=UTC_TZ)
-        assert result == expected
-        assert result.tzname() == "UTC"
-
-    def test_valid_iso8601_no_seconds(self) -> None:
-        """Test parsing a valid ISO 8601 timestamp without seconds."""
-        result = parse_iso8601("2025-05-20T10:00+02:00")
-        expected = datetime(2025, 5, 20, 10, 0, 0, tzinfo=PARIS_TZ)
-        assert result == expected
-        assert result.tzname() == "UTC+02:00"
-
-    def test_invalid_date(self) -> None:
-        """Test parsing an invalid date (e.g., invalid month)."""
-        with pytest.raises(ValueError, match="Invalid ISO 8601 format: 2025-13-20T10:00:00\\+02:00"):
-            parse_iso8601("2025-13-20T10:00:00+02:00")
-
-    def test_invalid_time(self) -> None:
-        """Test parsing an invalid time (e.g., hour > 23)."""
-        with pytest.raises(ValueError, match="Invalid ISO 8601 format: 2025-05-20T25:00:00\\+02:00"):
-            parse_iso8601("2025-05-20T25:00:00+02:00")
-
-    def test_invalid_timezone(self) -> None:
-        """Test parsing an invalid timezone format (e.g., > 99)."""
-        with pytest.raises(ValueError, match="offset must be a timedelta strictly between"):
-            parse_iso8601("2025-05-20T10:00:00+99")
-
-    def test_empty_string(self) -> None:
-        """Test parsing an empty string."""
-        with pytest.raises(ValueError, match="Invalid ISO 8601 format: "):
-            parse_iso8601("")
-
-    def test_fractional_seconds(self) -> None:
-        """Test parsing a timestamp with fractional seconds."""
-        result = parse_iso8601("2025-05-20T10:00:00.123456+02:00")
-        expected = datetime(2025, 5, 20, 10, 0, 0, 123456, tzinfo=PARIS_TZ)
-        assert result == expected
-        assert result.tzname() == "UTC+02:00"
+    @pytest.mark.parametrize(
+        ("timestamp", "expected_error_match"),
+        [
+            (
+                "2025-13-20T10:00:00+02:00",
+                "Invalid ISO 8601 format: 2025-13-20T10:00:00\\+02:00",
+            ),
+            (
+                "2025-05-20T25:00:00+02:00",
+                "Invalid ISO 8601 format: 2025-05-20T25:00:00\\+02:00",
+            ),
+            (
+                "2025-05-20T10:00:00+99",
+                "offset must be a timedelta strictly between",
+            ),
+            (
+                "",
+                "Invalid ISO 8601 format: ",
+            ),
+        ],
+        ids=["invalid_date", "invalid_time", "invalid_timezone", "empty_string"],
+    )
+    def test_invalid_iso8601(self, timestamp, expected_error_match) -> None:
+        """Test parsing invalid ISO 8601 timestamps."""
+        with pytest.raises(ValueError, match=expected_error_match):
+            parse_iso8601(timestamp)
 
 
+if __name__ == "__main__":
+    pytest.main([__file__])
