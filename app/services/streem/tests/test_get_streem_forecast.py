@@ -13,13 +13,13 @@ from click.exceptions import Exit as ClickExit
 from pytest_mock import MockerFixture
 from typer.testing import CliRunner
 
-from app.nomination.get_streem_forecast import INSTALLATIONS_AUTOCOMPLETE
-from app.nomination.get_streem_forecast import PARIS_TZ
-from app.nomination.get_streem_forecast import Resolutions
-from app.nomination.get_streem_forecast import authenticate
-from app.nomination.get_streem_forecast import get_forecast
-from app.nomination.get_streem_forecast import load_credentials
-from app.nomination.get_streem_forecast import main
+from app.services.streem.get_streem_forecast import INSTALLATIONS_AUTOCOMPLETE
+from app.services.streem.get_streem_forecast import PARIS_TZ
+from app.services.streem.get_streem_forecast import Resolutions
+from app.services.streem.get_streem_forecast import authenticate
+from app.services.streem.get_streem_forecast import get_forecast
+from app.services.streem.get_streem_forecast import load_credentials
+from app.services.streem.get_streem_forecast import main
 
 
 # Mock constants for testing

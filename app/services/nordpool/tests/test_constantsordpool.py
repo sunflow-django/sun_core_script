@@ -1,8 +1,8 @@
 import pytest
 
-from app.constants.nordpool import PRODUCT_ID
-from app.constants.nordpool import Area
-from app.constants.nordpool import Areas
+from app.services.nordpool.constants import PRODUCT_ID
+from app.services.nordpool.constants import Area
+from app.services.nordpool.constants import Areas
 
 
 def test_product_id() -> None:

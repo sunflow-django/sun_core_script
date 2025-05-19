@@ -1,8 +1,8 @@
 import pytest
 
 from app.core.config import settings
-from app.nordpool.api import CLIENT_AUTHORISATION_STRING
-from app.nordpool.api import AuctionAPI
+from app.services.nordpool.api import CLIENT_AUTHORISATION_STRING
+from app.services.nordpool.api import AuctionAPI
 
 
 @pytest.fixture
