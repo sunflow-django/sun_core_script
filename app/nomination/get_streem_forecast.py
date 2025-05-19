@@ -56,7 +56,6 @@ def load_credentials() -> tuple[str, str]:
     if not username or not password:
         console.print(f"[bold red]Error:[/bold red] {STREEM_USERNAME} and {STREEM_PASSWORD} must be set in .env file.")
         raise typer.Exit(code=1)
-
     return username, password
 
 
