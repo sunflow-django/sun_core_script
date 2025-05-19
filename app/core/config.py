@@ -144,5 +144,9 @@ class Settings(BaseSettings):
     STREEM_USERNAME: str
     STREEM_PASSWORD: str
 
+    # Nordpool API
+    NORDPOOL_USERNAME: str
+    NORDPOOL_PASSWORD: str
+
 
 settings = Settings()  # type: ignore

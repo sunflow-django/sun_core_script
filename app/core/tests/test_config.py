@@ -29,13 +29,15 @@ def base_settings() -> dict[str, str]:
         "FIRST_SUPERUSER_PASSWORD": "securepassword",
         "STREEM_USERNAME": "streemuser",
         "STREEM_PASSWORD": "streempass",
+        "NORDPOOL_USERNAME": "nord_pool_user",
+        "NORDPOOL_PASSWORD": "nord_pool_pass",
         "EMAIL_SUPERUSER_EMAIL": "test@example.com",
     }
 
 
 def test_mysql_scheme() -> None:
     """Test the MYSQL_SCHEME constant."""
-    assert MYSQL_SCHEME == "mysql+psycopg"
+    assert MYSQL_SCHEME == "mysql+pymysql"
 
 
 def test_default_settings(base_settings: dict[str, str]) -> None:
@@ -61,7 +63,7 @@ def test_computed_db_uri(base_settings: dict[str, str]) -> None:
         },
     )
     settings = Settings(**base_settings)
-    expected_uri = URL("mysql+psycopg://testuser:testpass@localhost:3306/testdb")
+    expected_uri = URL(f"{MYSQL_SCHEME}://testuser:testpass@localhost:3306/testdb")
     assert settings.db_uri == expected_uri
 
 
@@ -74,7 +76,7 @@ def test_computed_db_uri_test(base_settings: dict[str, str]) -> None:
         },
     )
     settings = Settings(**base_settings)
-    expected_uri = URL("mysql+psycopg://testuser:testpass@localhost:3306/testdb_test")
+    expected_uri = URL(f"{MYSQL_SCHEME}://testuser:testpass@localhost:3306/testdb_test")
     assert settings.db_uri_test == expected_uri
 
 
@@ -201,6 +203,13 @@ def test_streem_credentials(base_settings: dict[str, str]) -> None:
     settings = Settings(**base_settings)
     assert settings.STREEM_USERNAME == "streemuser"
     assert settings.STREEM_PASSWORD == "streempass"
+
+
+def test_nordpool_credentials(base_settings: dict[str, str]) -> None:
+    """Test Nordpool API credentials."""
+    settings = Settings(**base_settings)
+    assert settings.NORDPOOL_USERNAME == "nord_pool_user"
+    assert settings.NORDPOOL_PASSWORD == "nord_pool_pass"
 
 
 def test_sentry_dsn_none(base_settings: dict[str, str]) -> None:
