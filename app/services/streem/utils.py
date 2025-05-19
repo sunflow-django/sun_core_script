@@ -2,7 +2,6 @@ from datetime import datetime
 from datetime import timedelta
 
 
-# TODO: valider doc strings
 def transform_curve(
     volume_data: list(dict[str, float]),
     product_id: str = "CWE_H_DA_1",
@@ -19,8 +18,8 @@ def transform_curve(
         volume_data: list of dictionaries with 'date' (ISO 8601 strings) and 'data' (float) representing an energy
             volume in kWh. Ex.:
             [
-                {"date": "2025-05-20T10:00:00+02:00", "data": 1463.9},
-                {"date": "2025-05-20T11:00:00+02:00", "data": 1500.0},
+                {"date": "2025-05-20T09:00:00+02:00", "data": 1110.7},
+                {"date": "2025-05-20T10:00:00+02:00", "data": 1468.4},
             ]
         product_id: Product ID, as specified from Nordpool.
         area_code: Area code , as specified from Nordpool.
@@ -29,20 +28,22 @@ def transform_curve(
     Returns:
         Dictionary in NPS.Auction.API.CurveOrder format.
         Ex.:
-        {'areaCode': 'FR',
-        'auctionId': 'CWE_QH_DA_1',
-        'comment': None,
-        'curves': [{'contractId': 'CWE_QH_DA_1-20250520-11',
-                    'curvePoints': [{'price': -500.0, 'volume': 0.0},
-                                    {'price': -0.01, 'volume': 0.0},
-                                    {'price': 0.0, 'volume': -1.5},
-                                    {'price': 4000.0, 'volume': -1.5}]},
-                    {'contractId': 'CWE_QH_DA_1-20250520-12',
-                    'curvePoints': [{'price': -500.0, 'volume': 0.0},
-                                    {'price': -0.01, 'volume': 0.0},
-                                    {'price': 0.0, 'volume': -1.5},
-                                    {'price': 4000.0, 'volume': -1.5}]}],
-        'portfolio': 'TestAuctions FR'}
+        {"auctionId": "CWE_H_DA_1-20250520",
+        "portfolio": "FR-SUNFLOW",
+        "areaCode": "FR",
+        "comment": None,
+        "curves": [{"contractId": "CWE_H_DA_1-20250521-10",
+                    "curvePoints": [{"price": -500.0, "volume": 0.0},
+                                    {"price": -0.01, "volume": 0.0},
+                                    {"price": 0.0, "volume": -1.1},
+                                    {"price": 4000.0, "volume": -1.1}]},
+                    {"contractId": "CWE_H_DA_1-20250521-11",
+                    "curvePoints": [{"price": -500.0, "volume": 0.0},
+                                    {"price": -0.01, "volume": 0.0},
+                                    {"price": 0.0, "volume": -1.5},
+                                    {"price": 4000.0, "volume": -1.5}]}],
+        "portfolio": "FR-SUNFLOW"}
+
 
     """
     # Build auction_id based on first date in volume_data
