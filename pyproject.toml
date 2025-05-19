@@ -110,3 +110,11 @@ line-ending = "auto"
 
 [dependency-groups]
 dev = ["pytest>=8.3.5", "pytest-mock>=3.14.0"]
+
+
+[tool.pytest.ini_options]
+markers = [
+    "live: Tests that interact with a live API and are not run by default.",
+]
+# Exclude tests marked with 'live' by default
+addopts = "-m 'not live'"
