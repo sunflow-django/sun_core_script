@@ -73,7 +73,7 @@ def test_load_credentials_success(mock_env: MockerFixture) -> None:
 
 def test_load_credentials_missing_env(mocker: MockerFixture) -> None:
     """Test load_credentials with missing environment variables."""
-    mocker.patch("app.nomination.get_streem_forecast.load_dotenv", return_value=None)
+    mocker.patch("app.services.streem.get_streem_forecast.load_dotenv", return_value=None)
     mocker.patch.dict(os.environ, {}, clear=True)
     with pytest.raises(ClickExit):
         load_credentials()
@@ -193,7 +193,7 @@ def test_main_invalid_date(runner: CliRunner) -> None:
 
 def test_main_missing_credentials(runner: CliRunner, mocker: MockerFixture) -> None:
     """Test main function with missing credentials."""
-    mocker.patch("app.nomination.get_streem_forecast.load_dotenv", return_value=None)
+    mocker.patch("app.services.streem.get_streem_forecast.load_dotenv", return_value=None)
     mocker.patch.dict(os.environ, {}, clear=True)
     tomorrow = (datetime.now(tz=PARIS_TZ) + timedelta(days=1)).strftime("%Y-%m-%d")
     app = typer.Typer()
