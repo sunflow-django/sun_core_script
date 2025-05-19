@@ -32,13 +32,13 @@ class TestTransformCurve:
         assert len(result["curves"]) == 2
 
         # Check first curve
-        assert result["curves"][0]["contractId"] == "CWE_QH_DA_1-20250520-10"
+        assert result["curves"][0]["contractId"] == "CWE_QH_DA_1-20250520-11"
         assert len(result["curves"][0]["curvePoints"]) == 4
-        assert result["curves"][0]["curvePoints"][2]["volume"] == -1463.9
+        assert result["curves"][0]["curvePoints"][2]["volume"] == -1.5
 
         # Check second curve
-        assert result["curves"][1]["contractId"] == "CWE_QH_DA_1-20250520-11"
-        assert result["curves"][1]["curvePoints"][2]["volume"] == -1500.0
+        assert result["curves"][1]["contractId"] == "CWE_QH_DA_1-20250520-12"
+        assert result["curves"][1]["curvePoints"][2]["volume"] == -1.5
 
     def test_empty_input(self) -> None:
         """Test transform_curve with empty input data."""
@@ -69,8 +69,8 @@ class TestTransformCurve:
             {"date": "2025-05-20T10:00:00+00:00", "data": 1463.9},  # UTC timezone
         ]
         result = transform_curve(volume_data=volume_data)
-        assert result["curves"][0]["contractId"] == "CWE_QH_DA_1-20250520-10"
-        assert result["curves"][0]["curvePoints"][2]["volume"] == -1463.9
+        assert result["curves"][0]["contractId"] == "CWE_QH_DA_1-20250520-11"
+        assert result["curves"][0]["curvePoints"][2]["volume"] == -1.5
 
     def test_custom_parameters(self) -> None:
         """Test transform_curve with custom auction_id, area_code, and portfolio."""
@@ -95,8 +95,8 @@ class TestTransformCurve:
         assert len(curve_points) == 4
         assert curve_points[0] == {"price": -500.00, "volume": 0.00}
         assert curve_points[1] == {"price": -0.01, "volume": 0.00}
-        assert curve_points[2] == {"price": 0.00, "volume": -1000.0}
-        assert curve_points[3] == {"price": 4000.00, "volume": -1000.0}
+        assert curve_points[2] == {"price": 0.00, "volume": -1.0}
+        assert curve_points[3] == {"price": 4000.00, "volume": -1.0}
 
 
 class TestParseISO8601:
@@ -149,3 +149,5 @@ class TestParseISO8601:
         expected = datetime(2025, 5, 20, 10, 0, 0, 123456, tzinfo=PARIS_TZ)
         assert result == expected
         assert result.tzname() == "UTC+02:00"
+
+

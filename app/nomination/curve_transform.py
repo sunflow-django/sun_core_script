@@ -9,6 +9,9 @@ def transform_curve(
 ) -> dict:
     """
     Transform input data into NPS.Auction.API.CurveOrder format.
+    - Divide by 1000 (input is in kWh, output is in MWh).
+    - Round to one decimal (trade lot = 0,1 MWh)
+    - Add one hour (input uses zero-based numbering, output has a first index of one).
 
     Args:
         volume_data: list of dictionaries with 'date' (ISO 8601 strings) and 'data' (float) representing an energy
@@ -27,16 +30,16 @@ def transform_curve(
         {'areaCode': 'FR',
         'auctionId': 'CWE_QH_DA_1',
         'comment': None,
-        'curves': [{'contractId': 'CWE_QH_DA_1-20250520-10',
+        'curves': [{'contractId': 'CWE_QH_DA_1-20250520-11',
                     'curvePoints': [{'price': -500.0, 'volume': 0.0},
                                     {'price': -0.01, 'volume': 0.0},
-                                    {'price': 0.0, 'volume': -1463.9},
-                                    {'price': 4000.0, 'volume': -1463.9}]},
-                    {'contractId': 'CWE_QH_DA_1-20250520-11',
+                                    {'price': 0.0, 'volume': -1.5},
+                                    {'price': 4000.0, 'volume': -1.5}]},
+                    {'contractId': 'CWE_QH_DA_1-20250520-12',
                     'curvePoints': [{'price': -500.0, 'volume': 0.0},
                                     {'price': -0.01, 'volume': 0.0},
-                                    {'price': 0.0, 'volume': -1500.0},
-                                    {'price': 4000.0, 'volume': -1500.0}]}],
+                                    {'price': 0.0, 'volume': -1.5},
+                                    {'price': 4000.0, 'volume': -1.5}]}],
         'portfolio': 'TestAuctions FR'}
 
     """
@@ -51,13 +54,14 @@ def transform_curve(
                 msg = "Date must be a string"
                 raise TypeError(msg)  # noqa: TRY301
             date_obj = parse_iso8601(date_str)
-            volume = float(hour["data"])
+            volume = round(float(hour["data"]) / 1000, 1)
         except (KeyError, ValueError, TypeError) as e:
             return {"error": f"Invalid date or volume format in entry {hour}: {e!s}"}
 
         # Format contractId as CWE_QH_DA_1-YYYYMMDD-HH
         contract_date = date_obj.strftime("%Y%m%d")
-        contract_hour = f"{date_obj.hour:02d}" #TODO: make this work for daylight saving time (ie.: 3a and 3b hours)
+        # TODO: make this work for daylight saving time (ie.: 3a and 3b hours)
+        contract_hour = f"{date_obj.hour + 1:02d}"
         contract_id = f"{auction_id}-{contract_date}-{contract_hour}"
 
         # Create curvePoints with fixed prices and volumes
