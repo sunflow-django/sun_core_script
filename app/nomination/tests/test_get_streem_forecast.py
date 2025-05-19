@@ -13,13 +13,13 @@ from click.exceptions import Exit as ClickExit
 from pytest_mock import MockerFixture
 from typer.testing import CliRunner
 
-from app.get_streem_forecast import INSTALLATIONS_AUTOCOMPLETE
-from app.get_streem_forecast import PARIS_TZ
-from app.get_streem_forecast import Resolutions
-from app.get_streem_forecast import authenticate
-from app.get_streem_forecast import get_forecast
-from app.get_streem_forecast import load_credentials
-from app.get_streem_forecast import main
+from app.nomination.get_streem_forecast import INSTALLATIONS_AUTOCOMPLETE
+from app.nomination.get_streem_forecast import PARIS_TZ
+from app.nomination.get_streem_forecast import Resolutions
+from app.nomination.get_streem_forecast import authenticate
+from app.nomination.get_streem_forecast import get_forecast
+from app.nomination.get_streem_forecast import load_credentials
+from app.nomination.get_streem_forecast import main
 
 
 # Mock constants for testing
@@ -73,7 +73,7 @@ def test_load_credentials_success(mock_env: MockerFixture) -> None:
 
 def test_load_credentials_missing_env(mocker: MockerFixture) -> None:
     """Test load_credentials with missing environment variables."""
-    mocker.patch("app.get_streem_forecast.load_dotenv", return_value=None)
+    mocker.patch("app.nomination.get_streem_forecast.load_dotenv", return_value=None)
     mocker.patch.dict(os.environ, {}, clear=True)
     with pytest.raises(ClickExit):
         load_credentials()
@@ -193,7 +193,7 @@ def test_main_invalid_date(runner: CliRunner) -> None:
 
 def test_main_missing_credentials(runner: CliRunner, mocker: MockerFixture) -> None:
     """Test main function with missing credentials."""
-    mocker.patch("app.get_streem_forecast.load_dotenv", return_value=None)
+    mocker.patch("app.nomination.get_streem_forecast.load_dotenv", return_value=None)
     mocker.patch.dict(os.environ, {}, clear=True)
     tomorrow = (datetime.now(tz=PARIS_TZ) + timedelta(days=1)).strftime("%Y-%m-%d")
     app = typer.Typer()
