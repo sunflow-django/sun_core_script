@@ -1,9 +1,11 @@
 from datetime import datetime
+from datetime import timedelta
 
 
+# TODO: valider doc strings
 def transform_curve(
     volume_data: list(dict[str, float]),
-    auction_id: str = "CWE_QH_DA_1",
+    product_id: str = "CWE_H_DA_1",
     area_code: str = "FR",
     portfolio: str = "TestAuctions FR",
 ) -> dict:
@@ -49,7 +51,11 @@ def transform_curve(
     first_date_str = volume_data[0].get("date", None)
     if not first_date_str:
         return {"error": "First datapoint must has a 'date' attribute"}
-    first_date_obj = parse_iso8601(first_date_str)
+    try:
+        first_date_obj = parse_iso8601(first_date_str)
+    except ValueError as e:
+        return {"error": f"Invalid date or volume format in entry {first_date_str}: {e!s}"}
+
     auction_date = first_date_obj.strftime("%Y%m%d")
     auction_id = f"{product_id}-{auction_date}"
 

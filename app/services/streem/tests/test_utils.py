@@ -5,15 +5,23 @@ import pytest
 
 from app.constants.time_zones import PARIS_TZ
 from app.constants.time_zones import UTC_TZ
-from app.nomination.curve_transform import parse_iso8601
-from app.nomination.curve_transform import transform_curve
+from app.services.streem.utils import parse_iso8601
+from app.services.streem.utils import transform_curve
 
 
 class TestTransformCurve:
     """Tests for the transform_curve function."""
 
     @pytest.mark.parametrize(
-        ("volume_data", "auction_id", "area_code", "portfolio", "expected_curves", "expected_volumes"),
+        (
+            "volume_data",
+            "product_id",
+            "expected_auction_id",
+            "area_code",
+            "portfolio",
+            "expected_curves",
+            "expected_volumes",
+        ),
         [
             # Standard valid input (multiple timestamps)
             (
@@ -21,76 +29,84 @@ class TestTransformCurve:
                     {"date": "2025-05-20T10:00:00+02:00", "data": 1463.9},
                     {"date": "2025-05-20T11:00:00+02:00", "data": 1500.0},
                 ],
-                "CWE_QH_DA_1",
+                "CWE_H_DA_1",
+                "CWE_H_DA_1-20250520",
                 "FR",
                 "TestAuctions FR",
                 [
-                    "CWE_QH_DA_1-20250520-11",
-                    "CWE_QH_DA_1-20250520-12",
+                    "CWE_H_DA_1-20250521-11",
+                    "CWE_H_DA_1-20250521-12",
                 ],
                 [-1.5, -1.5],
             ),
             # UTC timezone
             (
                 [{"date": "2025-05-20T10:00:00+00:00", "data": 1463.9}],
-                "CWE_QH_DA_1",
+                "CWE_H_DA_1",
+                "CWE_H_DA_1-20250520",
                 "FR",
                 "TestAuctions FR",
-                ["CWE_QH_DA_1-20250520-11"],
+                ["CWE_H_DA_1-20250521-11"],
                 [-1.5],
             ),
             # Custom parameters
             (
                 [{"date": "2025-05-20T10:00:00+02:00", "data": 1463.9}],
                 "CUSTOM_AUCTION",
+                "CUSTOM_AUCTION-20250520",
                 "DE",
                 "Custom Portfolio",
-                ["CUSTOM_AUCTION-20250520-11"],
+                ["CUSTOM_AUCTION-20250521-11"],
                 [-1.5],
             ),
             # Non-integer volume
             (
                 [{"date": "2025-05-20T10:00:00+02:00", "data": 1555.55}],
-                "CWE_QH_DA_1",
+                "CWE_H_DA_1",
+                "CWE_H_DA_1-20250520",
                 "FR",
                 "TestAuctions FR",
-                ["CWE_QH_DA_1-20250520-11"],
+                ["CWE_H_DA_1-20250521-11"],
                 [-1.6],
             ),
             # Small volume
             (
                 [{"date": "2025-05-20T10:00:00+02:00", "data": 100.0}],
-                "CWE_QH_DA_1",
+                "CWE_H_DA_1",
+                "CWE_H_DA_1-20250520",
                 "FR",
                 "TestAuctions FR",
-                ["CWE_QH_DA_1-20250520-11"],
+                ["CWE_H_DA_1-20250521-11"],
                 [-0.1],
             ),
             # Zero volume
             (
                 [{"date": "2025-05-20T10:00:00+02:00", "data": 0.0}],
-                "CWE_QH_DA_1",
+                "CWE_H_DA_1",
+                "CWE_H_DA_1-20250520",
                 "FR",
                 "TestAuctions FR",
-                ["CWE_QH_DA_1-20250520-11"],
+                ["CWE_H_DA_1-20250521-11"],
                 [0.0],
             ),
             # Midnight hour
             (
                 [{"date": "2025-05-20T00:00:00+02:00", "data": 1000.0}],
-                "CWE_QH_DA_1",
+                "CWE_H_DA_1",
+                "CWE_H_DA_1-20250520",
                 "FR",
                 "TestAuctions FR",
-                ["CWE_QH_DA_1-20250520-01"],
+                ["CWE_H_DA_1-20250521-01"],
                 [-1.0],
             ),
             # End of day
             (
                 [{"date": "2025-05-20T23:00:00+02:00", "data": 1000.0}],
-                "CWE_QH_DA_1",
+                "CWE_H_DA_1",
+                "CWE_H_DA_1-20250520",
                 "FR",
                 "TestAuctions FR",
-                ["CWE_QH_DA_1-20250520-24"],
+                ["CWE_H_DA_1-20250521-24"],
                 [-1.0],
             ),
         ],
@@ -108,7 +124,8 @@ class TestTransformCurve:
     def test_valid_input(
         self,
         volume_data,
-        auction_id,
+        product_id,
+        expected_auction_id,
         area_code,
         portfolio,
         expected_curves,
@@ -117,12 +134,12 @@ class TestTransformCurve:
         """Test transform_curve with various valid inputs."""
         result = transform_curve(
             volume_data=volume_data,
-            auction_id=auction_id,
+            product_id=product_id,
             area_code=area_code,
             portfolio=portfolio,
         )
 
-        assert result["auctionId"] == auction_id
+        assert result["auctionId"] == expected_auction_id
         assert result["areaCode"] == area_code
         assert result["portfolio"] == portfolio
         assert result["comment"] is None
@@ -162,9 +179,10 @@ class TestTransformCurve:
     def test_invalid_input(self, volume_data, expected_error_contains) -> None:
         """Test transform_curve with invalid inputs."""
         result = transform_curve(volume_data=volume_data)
-        assert "Invalid date or volume format" in result["error"]
+        assert result["error"]
         assert expected_error_contains in result["error"]
 
+    # TODO : remove or adpat test
     def test_dst_spring_forward(self) -> None:
         """Test transform_curve during DST spring forward (March 30, 2025)."""
         volume_data = [
@@ -172,11 +190,12 @@ class TestTransformCurve:
             {"date": "2025-03-30T03:00:00+02:00", "data": 1000.0},  # CEST
         ]
         result = transform_curve(volume_data=volume_data)
-        assert result["curves"][0]["contractId"] == "CWE_QH_DA_1-20250330-02"
-        assert result["curves"][1]["contractId"] == "CWE_QH_DA_1-20250330-04"
+        assert result["curves"][0]["contractId"] == "CWE_H_DA_1-20250331-02"
+        assert result["curves"][1]["contractId"] == "CWE_H_DA_1-20250331-04"
         assert result["curves"][0]["curvePoints"][2]["volume"] == -1.0
         assert result["curves"][1]["curvePoints"][2]["volume"] == -1.0
 
+    # TODO : remove or adpat test
     def test_dst_fall_back(self) -> None:
         """Test transform_curve during DST fall back (October 26, 2025)."""
         volume_data = [
@@ -184,8 +203,8 @@ class TestTransformCurve:
             {"date": "2025-10-26T02:00:00+01:00", "data": 1000.0},  # CET
         ]
         result = transform_curve(volume_data=volume_data)
-        assert result["curves"][0]["contractId"] == "CWE_QH_DA_1-20251026-03"
-        assert result["curves"][1]["contractId"] == "CWE_QH_DA_1-20251026-03"
+        assert result["curves"][0]["contractId"] == "CWE_H_DA_1-20251027-03"
+        assert result["curves"][1]["contractId"] == "CWE_H_DA_1-20251027-03"
         assert result["curves"][0]["curvePoints"][2]["volume"] == -1.0
         assert result["curves"][1]["curvePoints"][2]["volume"] == -1.0
 
