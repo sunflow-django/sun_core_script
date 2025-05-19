@@ -6,11 +6,11 @@ import pytest
 from app.constants.time_zones import PARIS_TZ
 from app.constants.time_zones import UTC_TZ
 from app.services.streem.utils import parse_iso8601
-from app.services.streem.utils import transform_curve
+from app.services.streem.utils import transform_volume_data
 
 
-class TestTransformCurve:
-    """Tests for the transform_curve function."""
+class TestTransformVolumeData:
+    """Tests for the transform_volume_data function."""
 
     @pytest.mark.parametrize(
         (
@@ -131,8 +131,8 @@ class TestTransformCurve:
         expected_curves,
         expected_volumes,
     ) -> None:
-        """Test transform_curve with various valid inputs."""
-        result = transform_curve(
+        """Test transform_volume_data with various valid inputs."""
+        result = transform_volume_data(
             volume_data=volume_data,
             product_id=product_id,
             area_code=area_code,
@@ -154,8 +154,8 @@ class TestTransformCurve:
             assert curve["curvePoints"][1] == {"price": -0.01, "volume": 0.00}
 
     def test_empty_input(self) -> None:
-        """Test transform_curve with empty input data."""
-        result = transform_curve(volume_data=[])
+        """Test transform_volume_data with empty input data."""
+        result = transform_volume_data(volume_data=[])
         assert result == {"error": "Input data is empty"}
 
     @pytest.mark.parametrize(
@@ -177,19 +177,19 @@ class TestTransformCurve:
         ids=["invalid_date_format", "missing_key", "invalid_data_type"],
     )
     def test_invalid_input(self, volume_data, expected_error_contains) -> None:
-        """Test transform_curve with invalid inputs."""
-        result = transform_curve(volume_data=volume_data)
+        """Test transform_volume_data with invalid inputs."""
+        result = transform_volume_data(volume_data=volume_data)
         assert result["error"]
         assert expected_error_contains in result["error"]
 
     # TODO : remove or adpat test
     def test_dst_spring_forward(self) -> None:
-        """Test transform_curve during DST spring forward (March 30, 2025)."""
+        """Test transform_volume_data during DST spring forward (March 30, 2025)."""
         volume_data = [
             {"date": "2025-03-30T01:00:00+01:00", "data": 1000.0},  # CET
             {"date": "2025-03-30T03:00:00+02:00", "data": 1000.0},  # CEST
         ]
-        result = transform_curve(volume_data=volume_data)
+        result = transform_volume_data(volume_data=volume_data)
         assert result["curves"][0]["contractId"] == "CWE_H_DA_1-20250331-02"
         assert result["curves"][1]["contractId"] == "CWE_H_DA_1-20250331-04"
         assert result["curves"][0]["curvePoints"][2]["volume"] == -1.0
@@ -197,12 +197,12 @@ class TestTransformCurve:
 
     # TODO : remove or adpat test
     def test_dst_fall_back(self) -> None:
-        """Test transform_curve during DST fall back (October 26, 2025)."""
+        """Test transform_volume_data during DST fall back (October 26, 2025)."""
         volume_data = [
             {"date": "2025-10-26T02:00:00+02:00", "data": 1000.0},  # CEST
             {"date": "2025-10-26T02:00:00+01:00", "data": 1000.0},  # CET
         ]
-        result = transform_curve(volume_data=volume_data)
+        result = transform_volume_data(volume_data=volume_data)
         assert result["curves"][0]["contractId"] == "CWE_H_DA_1-20251027-03"
         assert result["curves"][1]["contractId"] == "CWE_H_DA_1-20251027-03"
         assert result["curves"][0]["curvePoints"][2]["volume"] == -1.0

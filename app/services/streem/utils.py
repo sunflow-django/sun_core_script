@@ -2,7 +2,7 @@ from datetime import datetime
 from datetime import timedelta
 
 
-def transform_curve(
+def transform_volume_data(
     volume_data: list(dict[str, float]),
     product_id: str = "CWE_H_DA_1",
     area_code: str = "FR",
