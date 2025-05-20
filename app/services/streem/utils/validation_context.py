@@ -32,3 +32,18 @@ class ValidationContext:
         if not (0 <= self.mini <= self.maxi):
             msg = f"mini /maxi must be: 0 <= mini <= maxi. Got mini={self.mini}, maxi={self.maxi}"
             raise ValueError(msg)
+
+    @property
+    def multiplier(self) -> int:
+        """Returns the number of items in one hour"""
+        return 1 if self.freq == "1h" else 4
+
+    @property
+    def min_length(self) -> int:
+        """Returns the number of items in a day, during a spring forward DST day"""
+        return 23 * self.multiplier
+
+    @property
+    def max_length(self) -> int:
+        """Returns the number of items in a day, during a fall back DST day"""
+        return 25 * self.multiplier
