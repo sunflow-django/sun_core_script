@@ -51,7 +51,10 @@ def validate_json_pd(volume_data: JsonResponse, context: ValidationContext) -> b
     # Validate dates can be parsed
     try:
         volume_df["date"] = pd.to_datetime(
-            volume_df["date"], format="%Y-%m-%dT%H:%M:%S%z", utc=True, errors="raise"
+            volume_df["date"],
+            format="%Y-%m-%dT%H:%M:%S%z",
+            utc=True,
+            errors="raise",
         ).dt.tz_convert(PARIS_TZ)
     except (ValueError, TypeError):
         msg = "All 'date' values must be valid ISO 8601 timestamps with timezone"
