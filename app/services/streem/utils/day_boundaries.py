@@ -8,7 +8,7 @@ from app.constants.time_zones import PARIS_TZ
 
 def day_boundaries(day: str) -> tuple[DateTime, DateTime]:
     """
-    Return the start (incluvise) and end (exclusive) of the given day in Paris timezone.
+    Return the start (inclusive) and end (exclusive) of the given day in Paris timezone.
 
     Args:
         day: Date string in YYYY-MM-DD format (e.g., "2025-05-20").
