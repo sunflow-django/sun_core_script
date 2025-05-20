@@ -4,34 +4,39 @@ from jsonschema import FormatChecker
 from jsonschema import ValidationError
 from jsonschema import validate
 
+from app.services.streem.utils.validation_context import ValidationContext
 
-def _validate_schema(json_data: list, mini: float, maxi: float) -> bool:
+
+JsonResponse = list[dict[str, str | float]]  #  List of dictionaries with 'date' (str) and 'data' (float) keys.
+
+
+def _validate_schema(json_data: JsonResponse, context: ValidationContext) -> bool:
     """
     Validate the structure of JSON-like data (list).
 
     Checks:
-    - The list has between 23 and 25 items (inclusive).
+    - The list has the expected number of items based on freq and day length.
     - Each item has exactly two keys: 'date' and 'data'.
     - 'date' is a valid ISO 8601 date-time.
     - 'data' is a float between mini and maxi (inclusive).
 
     Args:
         json_data: List of dictionaries with 'date' and 'data' keys.
-        mini: Minimum allowed value for 'data'.
-        maxi: Maximum allowed value for 'data'.
+        context: The validation context that provies mini, maxi, freq etc.
 
     Returns:
         bool: True if validation succeeds, False if it fails.
     """
+
     schema = {
         "type": "array",
-        "minItems": 23,
-        "maxItems": 25,
+        "minItems": context.min_length,
+        "maxItems": context.max_length,
         "items": {
             "type": "object",
             "properties": {
                 "date": {"type": "string", "format": "date-time"},
-                "data": {"type": "number", "minimum": mini, "maximum": maxi},
+                "data": {"type": "number", "minimum": context.mini, "maximum": context.maxi},
             },
             "required": ["date", "data"],
             "additionalProperties": False,
@@ -44,5 +49,4 @@ def _validate_schema(json_data: list, mini: float, maxi: float) -> bool:
         msg = f"Schema validation failed: {e.message}"
         logging.exception(msg)
         return False
-    else:
-        return True
+    return True
