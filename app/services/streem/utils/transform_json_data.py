@@ -2,8 +2,8 @@ from datetime import datetime
 from datetime import timedelta
 
 
-def transform_volume_data(
-    volume_data: list(dict[str, float]),
+def transform_json_data(
+    json_data: list(dict[str, float]),
     product_id: str = "CWE_H_DA_1",
     area_code: str = "FR",
     portfolio: str = "TestAuctions FR",
@@ -15,7 +15,7 @@ def transform_volume_data(
     - Add one hour (input uses zero-based numbering, output has a first index of one).
 
     Args:
-        volume_data: list of dictionaries with 'date' (ISO 8601 strings) and 'data' (float) representing an energy
+        json_data: list of dictionaries with 'date' (ISO 8601 strings) and 'data' (float) representing an energy
             volume in kWh. Ex.:
             [
                 {"date": "2025-05-20T09:00:00+02:00", "data": 1110.7},
@@ -46,10 +46,10 @@ def transform_volume_data(
 
 
     """
-    # Build auction_id based on first date in volume_data
-    if not volume_data:
+    # Build auction_id based on first date in json_data
+    if not json_data:
         return {"error": "Input data is empty"}
-    first_date_str = volume_data[0].get("date", None)
+    first_date_str = json_data[0].get("date", None)
     if not first_date_str:
         return {"error": "First datapoint must has a 'date' attribute"}
     try:
@@ -62,7 +62,7 @@ def transform_volume_data(
 
     # build curves
     curves: list[dict] = []
-    for hour in volume_data:
+    for hour in json_data:
         try:
             date_str = hour["date"]
             if not isinstance(date_str, str):

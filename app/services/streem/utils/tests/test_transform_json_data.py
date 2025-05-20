@@ -5,16 +5,16 @@ import pytest
 
 from app.constants.time_zones import PARIS_TZ
 from app.constants.time_zones import UTC_TZ
-from app.services.streem.utils.transform_json import parse_iso8601
-from app.services.streem.utils.transform_json import transform_volume_data
+from app.services.streem.utils.transform_json_data import parse_iso8601
+from app.services.streem.utils.transform_json_data import transform_json_data
 
 
 class TestTransformVolumeData:
-    """Tests for the transform_volume_data function."""
+    """Tests for the transform_json_data function."""
 
     @pytest.mark.parametrize(
         (
-            "volume_data",
+            "json_data",
             "product_id",
             "expected_auction_id",
             "area_code",
@@ -123,7 +123,7 @@ class TestTransformVolumeData:
     )
     def test_valid_input(
         self,
-        volume_data,
+        json_data,
         product_id,
         expected_auction_id,
         area_code,
@@ -131,9 +131,9 @@ class TestTransformVolumeData:
         expected_curves,
         expected_volumes,
     ) -> None:
-        """Test transform_volume_data with various valid inputs."""
-        result = transform_volume_data(
-            volume_data=volume_data,
+        """Test transform_json_data with various valid inputs."""
+        result = transform_json_data(
+            json_data=json_data,
             product_id=product_id,
             area_code=area_code,
             portfolio=portfolio,
@@ -143,7 +143,7 @@ class TestTransformVolumeData:
         assert result["areaCode"] == area_code
         assert result["portfolio"] == portfolio
         assert result["comment"] is None
-        assert len(result["curves"]) == len(volume_data)
+        assert len(result["curves"]) == len(json_data)
 
         for i, curve in enumerate(result["curves"]):
             assert curve["contractId"] == expected_curves[i]
@@ -154,12 +154,12 @@ class TestTransformVolumeData:
             assert curve["curvePoints"][1] == {"price": -0.01, "volume": 0.00}
 
     def test_empty_input(self) -> None:
-        """Test transform_volume_data with empty input data."""
-        result = transform_volume_data(volume_data=[])
+        """Test transform_json_data with empty input data."""
+        result = transform_json_data(json_data=[])
         assert result == {"error": "Input data is empty"}
 
     @pytest.mark.parametrize(
-        ("volume_data", "expected_error_contains"),
+        ("json_data", "expected_error_contains"),
         [
             (
                 [{"date": "2025-05-20T99:00:00", "data": 1463.9}],
@@ -176,20 +176,20 @@ class TestTransformVolumeData:
         ],
         ids=["invalid_date_format", "missing_key", "invalid_data_type"],
     )
-    def test_invalid_input(self, volume_data, expected_error_contains) -> None:
-        """Test transform_volume_data with invalid inputs."""
-        result = transform_volume_data(volume_data=volume_data)
+    def test_invalid_input(self, json_data, expected_error_contains) -> None:
+        """Test transform_json_data with invalid inputs."""
+        result = transform_json_data(json_data=json_data)
         assert result["error"]
         assert expected_error_contains in result["error"]
 
     # TODO : remove or adpat test
     def test_dst_spring_forward(self) -> None:
-        """Test transform_volume_data during DST spring forward (March 30, 2025)."""
-        volume_data = [
+        """Test transform_json_data during DST spring forward (March 30, 2025)."""
+        json_data = [
             {"date": "2025-03-30T01:00:00+01:00", "data": 1000.0},  # CET
             {"date": "2025-03-30T03:00:00+02:00", "data": 1000.0},  # CEST
         ]
-        result = transform_volume_data(volume_data=volume_data)
+        result = transform_json_data(json_data=json_data)
         assert result["curves"][0]["contractId"] == "CWE_H_DA_1-20250331-02"
         assert result["curves"][1]["contractId"] == "CWE_H_DA_1-20250331-04"
         assert result["curves"][0]["curvePoints"][2]["volume"] == -1.0
@@ -197,12 +197,12 @@ class TestTransformVolumeData:
 
     # TODO : remove or adpat test
     def test_dst_fall_back(self) -> None:
-        """Test transform_volume_data during DST fall back (October 26, 2025)."""
-        volume_data = [
+        """Test transform_json_data during DST fall back (October 26, 2025)."""
+        json_data = [
             {"date": "2025-10-26T02:00:00+02:00", "data": 1000.0},  # CEST
             {"date": "2025-10-26T02:00:00+01:00", "data": 1000.0},  # CET
         ]
-        result = transform_volume_data(volume_data=volume_data)
+        result = transform_json_data(json_data=json_data)
         assert result["curves"][0]["contractId"] == "CWE_H_DA_1-20251027-03"
         assert result["curves"][1]["contractId"] == "CWE_H_DA_1-20251027-03"
         assert result["curves"][0]["curvePoints"][2]["volume"] == -1.0
