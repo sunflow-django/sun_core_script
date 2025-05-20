@@ -10,8 +10,8 @@ class ValidationContext:
 
     delivery_date: str
     freq: str
-    mini: float
-    maxi: float
+    mini: float  # kWh
+    maxi: float  # kWh
 
     def __post_init__(self) -> None:
         """Validate:
