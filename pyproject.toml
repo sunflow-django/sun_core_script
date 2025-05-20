@@ -18,6 +18,7 @@ dependencies = [
     "pandas>=2.2.3",
     "pendulum>=3.1.0",
     "jsonschema>=4.23.0",
+    "rfc3339-validator>=0.1.4",
 ]
 
 
