@@ -6,7 +6,7 @@ def transform_json_data(
     json_data: list(dict[str, float]),
     product_id: str = "CWE_H_DA_1",
     area_code: str = "FR",
-    portfolio: str = "TestAuctions FR",
+    portfolio: str = "FR-SUNFLOW",
 ) -> dict:
     """
     Transform input data into NPS.Auction.API.CurveOrder format.
