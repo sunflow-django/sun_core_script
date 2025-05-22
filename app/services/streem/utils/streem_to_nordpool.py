@@ -1,18 +1,28 @@
+from dataclasses import dataclass
 from datetime import datetime
 from datetime import timedelta
 
 
-def transform_json_data(
+@dataclass
+class OrderHeader:
+    """Header for a Nordpool order"""
+
+    product_id: str = "CWE_H_DA_1"
+    area_code: str = "FR"
+    portfolio: str | None = "FR-SUNFLOW"
+    comment: str | None = None
+
+
+def streem_to_nordpool(
     json_data: list(dict[str, float]),
-    product_id: str = "CWE_H_DA_1",
-    area_code: str = "FR",
-    portfolio: str = "FR-SUNFLOW",
+    oh: OrderHeader | None = None,
 ) -> dict:
     """
     Transform input data into NPS.Auction.API.CurveOrder format.
     - Divide by 1000 (input is in kWh, output is in MWh).
-    - Round to one decimal (trade lot = 0,1 MWh)
-    - Add one hour (input uses zero-based numbering, output has a first index of one).
+    - Round to one decimal (ouput requires trade lot of 0,1 MWh)
+    - Add one hour to each timestamp (input uses zero-based numbering, output has a first index of one).
+    - Add order header
 
     Args:
         json_data: list of dictionaries with 'date' (ISO 8601 strings) and 'data' (float) representing an energy
@@ -21,9 +31,7 @@ def transform_json_data(
                 {"date": "2025-05-20T09:00:00+02:00", "data": 1110.7},
                 {"date": "2025-05-20T10:00:00+02:00", "data": 1468.4},
             ]
-        product_id: Product ID, as specified from Nordpool.
-        area_code: Area code , as specified from Nordpool.
-        portfolio: Portfolio name for the output (free text).
+        order_header: The order header
 
     Returns:
         Dictionary in NPS.Auction.API.CurveOrder format.
@@ -46,6 +54,10 @@ def transform_json_data(
 
 
     """
+    # Handle missing order_header
+    if not oh:
+        oh = OrderHeader()
+
     # Build auction_id based on first date in json_data
     if not json_data:
         return {"error": "Input data is empty"}
@@ -58,7 +70,7 @@ def transform_json_data(
         return {"error": f"Invalid date or volume format in entry {first_date_str}: {e!s}"}
 
     auction_date = first_date_obj.strftime("%Y%m%d")
-    auction_id = f"{product_id}-{auction_date}"
+    auction_id = f"{oh.product_id}-{auction_date}"
 
     # build curves
     curves: list[dict] = []
@@ -79,7 +91,7 @@ def transform_json_data(
         contract_date = (date_obj + timedelta(days=1)).strftime("%Y%m%d")
         # TODO: make this work for daylight saving time (ie.: 3a and 3b hours)
         contract_hour = f"{date_obj.hour + 1:02d}"
-        contract_id = f"{product_id}-{contract_date}-{contract_hour}"
+        contract_id = f"{oh.product_id}-{contract_date}-{contract_hour}"
 
         # Create curvePoints with fixed prices and volumes
         curve_points = [
@@ -91,7 +103,13 @@ def transform_json_data(
 
         curves.append({"contractId": contract_id, "curvePoints": curve_points})
 
-    return {"auctionId": auction_id, "portfolio": portfolio, "areaCode": area_code, "comment": None, "curves": curves}
+    return {
+        "auctionId": auction_id,
+        "portfolio": oh.portfolio,
+        "areaCode": oh.area_code,
+        "comment": None,
+        "curves": curves,
+    }
 
 
 def parse_iso8601(timestamp: str) -> datetime:

@@ -1,24 +1,25 @@
-# ruff: noqa: PLR2004, PLR0913,ANN001
+# ruff: noqa: PLR2004, PLR0913, ANN001
 from datetime import datetime
 
 import pytest
 
 from app.constants.time_zones import PARIS_TZ
 from app.constants.time_zones import UTC_TZ
+from app.services.streem.utils.streem_to_nordpool import OrderHeader
 from app.services.streem.utils.streem_to_nordpool import parse_iso8601
-from app.services.streem.utils.streem_to_nordpool import transform_json_data
+from app.services.streem.utils.streem_to_nordpool import streem_to_nordpool
 
 
 class TestTransformVolumeData:
-    """Tests for the transform_json_data function."""
+    """Tests for the streem_to_nordpool function."""
 
     @pytest.mark.parametrize(
         (
             "json_data",
-            "product_id",
+            "order_header",
             "expected_auction_id",
-            "area_code",
-            "portfolio",
+            "expected_area_code",
+            "expected_portfolio",
             "expected_curves",
             "expected_volumes",
         ),
@@ -29,7 +30,7 @@ class TestTransformVolumeData:
                     {"date": "2025-05-20T10:00:00+02:00", "data": 1463.9},
                     {"date": "2025-05-20T11:00:00+02:00", "data": 1500.0},
                 ],
-                "CWE_H_DA_1",
+                OrderHeader(product_id="CWE_H_DA_1", area_code="FR", portfolio="FR-SUNFLOW"),
                 "CWE_H_DA_1-20250520",
                 "FR",
                 "FR-SUNFLOW",
@@ -42,7 +43,7 @@ class TestTransformVolumeData:
             # UTC timezone
             (
                 [{"date": "2025-05-20T10:00:00+00:00", "data": 1463.9}],
-                "CWE_H_DA_1",
+                OrderHeader(product_id="CWE_H_DA_1", area_code="FR", portfolio="FR-SUNFLOW"),
                 "CWE_H_DA_1-20250520",
                 "FR",
                 "FR-SUNFLOW",
@@ -52,7 +53,7 @@ class TestTransformVolumeData:
             # Custom parameters
             (
                 [{"date": "2025-05-20T10:00:00+02:00", "data": 1463.9}],
-                "CUSTOM_AUCTION",
+                OrderHeader(product_id="CUSTOM_AUCTION", area_code="DE", portfolio="Custom Portfolio"),
                 "CUSTOM_AUCTION-20250520",
                 "DE",
                 "Custom Portfolio",
@@ -62,7 +63,7 @@ class TestTransformVolumeData:
             # Non-integer volume
             (
                 [{"date": "2025-05-20T10:00:00+02:00", "data": 1555.55}],
-                "CWE_H_DA_1",
+                OrderHeader(product_id="CWE_H_DA_1", area_code="FR", portfolio="FR-SUNFLOW"),
                 "CWE_H_DA_1-20250520",
                 "FR",
                 "FR-SUNFLOW",
@@ -72,7 +73,7 @@ class TestTransformVolumeData:
             # Small volume
             (
                 [{"date": "2025-05-20T10:00:00+02:00", "data": 100.0}],
-                "CWE_H_DA_1",
+                OrderHeader(product_id="CWE_H_DA_1", area_code="FR", portfolio="FR-SUNFLOW"),
                 "CWE_H_DA_1-20250520",
                 "FR",
                 "FR-SUNFLOW",
@@ -82,7 +83,7 @@ class TestTransformVolumeData:
             # Zero volume
             (
                 [{"date": "2025-05-20T10:00:00+02:00", "data": 0.0}],
-                "CWE_H_DA_1",
+                OrderHeader(product_id="CWE_H_DA_1", area_code="FR", portfolio="FR-SUNFLOW"),
                 "CWE_H_DA_1-20250520",
                 "FR",
                 "FR-SUNFLOW",
@@ -92,7 +93,7 @@ class TestTransformVolumeData:
             # Midnight hour
             (
                 [{"date": "2025-05-20T00:00:00+02:00", "data": 1000.0}],
-                "CWE_H_DA_1",
+                OrderHeader(product_id="CWE_H_DA_1", area_code="FR", portfolio="FR-SUNFLOW"),
                 "CWE_H_DA_1-20250520",
                 "FR",
                 "FR-SUNFLOW",
@@ -102,7 +103,7 @@ class TestTransformVolumeData:
             # End of day
             (
                 [{"date": "2025-05-20T23:00:00+02:00", "data": 1000.0}],
-                "CWE_H_DA_1",
+                OrderHeader(product_id="CWE_H_DA_1", area_code="FR", portfolio="FR-SUNFLOW"),
                 "CWE_H_DA_1-20250520",
                 "FR",
                 "FR-SUNFLOW",
@@ -124,24 +125,19 @@ class TestTransformVolumeData:
     def test_valid_input(
         self,
         json_data,
-        product_id,
+        order_header,
         expected_auction_id,
-        area_code,
-        portfolio,
+        expected_area_code,
+        expected_portfolio,
         expected_curves,
         expected_volumes,
     ) -> None:
-        """Test transform_json_data with various valid inputs."""
-        result = transform_json_data(
-            json_data=json_data,
-            product_id=product_id,
-            area_code=area_code,
-            portfolio=portfolio,
-        )
+        """Test streem_to_nordpool with various valid inputs."""
+        result = streem_to_nordpool(json_data=json_data, oh=order_header)
 
         assert result["auctionId"] == expected_auction_id
-        assert result["areaCode"] == area_code
-        assert result["portfolio"] == portfolio
+        assert result["areaCode"] == expected_area_code
+        assert result["portfolio"] == expected_portfolio
         assert result["comment"] is None
         assert len(result["curves"]) == len(json_data)
 
@@ -154,8 +150,8 @@ class TestTransformVolumeData:
             assert curve["curvePoints"][1] == {"price": -0.01, "volume": 0.00}
 
     def test_empty_input(self) -> None:
-        """Test transform_json_data with empty input data."""
-        result = transform_json_data(json_data=[])
+        """Test streem_to_nordpool with empty input data."""
+        result = streem_to_nordpool(json_data=[], oh=None)
         assert result == {"error": "Input data is empty"}
 
     @pytest.mark.parametrize(
@@ -177,36 +173,37 @@ class TestTransformVolumeData:
         ids=["invalid_date_format", "missing_key", "invalid_data_type"],
     )
     def test_invalid_input(self, json_data, expected_error_contains) -> None:
-        """Test transform_json_data with invalid inputs."""
-        result = transform_json_data(json_data=json_data)
+        """Test streem_to_nordpool with invalid inputs."""
+        result = streem_to_nordpool(json_data=json_data, oh=None)
         assert result["error"]
         assert expected_error_contains in result["error"]
 
-    # TODO : remove or adpat test
     def test_dst_spring_forward(self) -> None:
-        """Test transform_json_data during DST spring forward (March 30, 2025)."""
+        """Test streem_to_nordpool during DST spring forward (March 30, 2025)."""
         json_data = [
             {"date": "2025-03-30T01:00:00+01:00", "data": 1000.0},  # CET
             {"date": "2025-03-30T03:00:00+02:00", "data": 1000.0},  # CEST
         ]
-        result = transform_json_data(json_data=json_data)
+        result = streem_to_nordpool(json_data=json_data, oh=OrderHeader())
         assert result["curves"][0]["contractId"] == "CWE_H_DA_1-20250331-02"
         assert result["curves"][1]["contractId"] == "CWE_H_DA_1-20250331-04"
         assert result["curves"][0]["curvePoints"][2]["volume"] == -1.0
         assert result["curves"][1]["curvePoints"][2]["volume"] == -1.0
 
-    # TODO : remove or adpat test
     def test_dst_fall_back(self) -> None:
-        """Test transform_json_data during DST fall back (October 26, 2025)."""
+        """Test streem_to_nordpool during DST fall back (October 26, 2025).
+        Note: Current implementation does not handle 3a/3b hours; both 02:00 entries map to the same contract hour."""
         json_data = [
             {"date": "2025-10-26T02:00:00+02:00", "data": 1000.0},  # CEST
             {"date": "2025-10-26T02:00:00+01:00", "data": 1000.0},  # CET
         ]
-        result = transform_json_data(json_data=json_data)
+        result = streem_to_nordpool(json_data=json_data, oh=OrderHeader())
+        # Current behavior: both map to hour 03 due to simple hour + 1 logic
         assert result["curves"][0]["contractId"] == "CWE_H_DA_1-20251027-03"
         assert result["curves"][1]["contractId"] == "CWE_H_DA_1-20251027-03"
         assert result["curves"][0]["curvePoints"][2]["volume"] == -1.0
         assert result["curves"][1]["curvePoints"][2]["volume"] == -1.0
+        # TODO: Update implementation to distinguish 3a/3b hours during DST fall back
 
 
 class TestParseISO8601:
