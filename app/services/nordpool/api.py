@@ -3,7 +3,7 @@ import typing
 
 import requests
 
-from app.services.nordpool.schema.curve_order_response_schema import CurveOrder
+from app.services.nordpool.schema import CurveOrder
 
 
 # Definitions

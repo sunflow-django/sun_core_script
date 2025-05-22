@@ -7,20 +7,20 @@ from pydantic import BaseModel
 from pydantic import Field
 
 
-class ApprovalSource(Enum):
+class ApprovalSource(str, Enum):
     AUTOMATIC = "Automatic"
     OPERATOR = "Operator"
     MEMBER = "Member"
 
 
-class AuctionResultState(Enum):
+class AuctionResultState(str, Enum):
     NOT_AVAILABLE = "NotAvailable"
     PRELIMINARY_RESULTS = "PreliminaryResults"
     FINAL = "Final"
     INITIAL_PRICE = "InitialPrice"
 
 
-class AuctionStateType(Enum):
+class AuctionStateType(str, Enum):
     OPEN = "Open"
     CLOSED = "Closed"
     RESULTS_PUBLISHED = "ResultsPublished"
@@ -69,7 +69,7 @@ class Order(BaseModel, extra="forbid"):
     comment: Annotated[str | None, Field(max_length=255, min_length=0)] = None
 
 
-class OrderApprovalState(Enum):
+class OrderApprovalState(str, Enum):
     UNDEFINED = "Undefined"
     APPROVED = "Approved"
     NOT_APPROVED = "NotApproved"
@@ -88,13 +88,13 @@ class OrderResponse(BaseModel, extra="forbid"):
     resolution_seconds: Annotated[int | None, Field(alias="resolutionSeconds")] = None
 
 
-class OrderResultType(Enum):
+class OrderResultType(str, Enum):
     CURVE = "Curve"
     BLOCK = "Block"
     ROUNDING_RESIDUAL = "RoundingResidual"
 
 
-class OrderStateType(Enum):
+class OrderStateType(str, Enum):
     NEW = "New"
     ACCEPTED = "Accepted"
     CANCELLED = "Cancelled"
@@ -125,7 +125,7 @@ class ProblemDetails(BaseModel, extra="forbid"):
     instance: str | None = None
 
 
-class TradeSide(Enum):
+class TradeSide(str, Enum):
     BUY = "Buy"
     SELL = "Sell"
 
