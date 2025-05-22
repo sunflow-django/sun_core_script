@@ -5,8 +5,8 @@ import pytest
 
 from app.constants.time_zones import PARIS_TZ
 from app.constants.time_zones import UTC_TZ
-from app.services.streem.utils.transform_json_data import parse_iso8601
-from app.services.streem.utils.transform_json_data import transform_json_data
+from app.services.streem.utils.streem_to_nordpool import parse_iso8601
+from app.services.streem.utils.streem_to_nordpool import transform_json_data
 
 
 class TestTransformVolumeData:
