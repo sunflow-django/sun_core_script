@@ -1,5 +1,9 @@
-import datetime
+# TODO convert field to annotated.
+# TODO compare to autogenerate model
+# TODO add  extra="forbid" in all modules and test for it
+from datetime import datetime
 from enum import Enum
+from typing import Annotated
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -23,14 +27,14 @@ class AuctionStateType(str, Enum):
     CANCELLED = "Cancelled"
 
 
-class OrderType(BaseModel):
+class OrderType(BaseModel, extra="forbid"):
     """Schema for order type."""
 
     id: int = Field(...)
     name: str | None = Field(default=None, min_length=0)
 
 
-class Currency(BaseModel):
+class Currency(BaseModel, extra="forbid"):
     """Schema for currency details."""
 
     currency_code: str | None = Field(default=None, alias="currencyCode", min_length=0)
@@ -38,22 +42,22 @@ class Currency(BaseModel):
     max_price: float = Field(..., alias="maxPrice")
 
 
-class Contract(BaseModel):
+class Contract(BaseModel, extra="forbid"):
     """Schema for contract details."""
 
     id: str | None = Field(default=None, min_length=0)
-    delivery_start: datetime.datetime = Field(..., alias="deliveryStart")
-    delivery_end: datetime.datetime = Field(..., alias="deliveryEnd")
+    delivery_start: datetime= Field(..., alias="deliveryStart")
+    delivery_end: datetime= Field(..., alias="deliveryEnd")
 
 
-class AreaContractGroup(BaseModel):
+class AreaContractGroup(BaseModel, extra="forbid"):
     """Schema for area contract group."""
 
     area_code: str | None = Field(default=None, alias="areaCode", min_length=0)
     contracts: list[Contract] | None = Field(default=None)
 
 
-class PortfolioArea(BaseModel):
+class PortfolioArea(BaseModel, extra="forbid"):
     """Schema for portfolio area details."""
 
     code: str | None = Field(default=None, min_length=0)
@@ -64,7 +68,7 @@ class PortfolioArea(BaseModel):
     auction_trading_resolution: int = Field(..., alias="auctionTradingResolution")
 
 
-class AuctionPortfolio(BaseModel):
+class AuctionPortfolio(BaseModel, extra="forbid"):
     """Schema for auction portfolio details."""
 
     name: str | None = Field(default=None, min_length=0)
@@ -76,23 +80,23 @@ class AuctionPortfolio(BaseModel):
     areas: list[PortfolioArea] | None = Field(default=None)
 
 
-class ContractNetVolume(BaseModel):
+class ContractNetVolume(BaseModel, extra="forbid"):
     """Schema for contract net volume."""
 
     net_volume: float | None = Field(default=None, alias="netVolume")
     contract_id: str | None = Field(default=None, alias="contractId", min_length=0)
-    delivery_start: datetime.datetime = Field(..., alias="deliveryStart")
-    delivery_end: datetime.datetime = Field(..., alias="deliveryEnd")
+    delivery_start: datetime= Field(..., alias="deliveryStart")
+    delivery_end: datetime= Field(..., alias="deliveryEnd")
 
 
-class AreaNetVolume(BaseModel):
+class AreaNetVolume(BaseModel, extra="forbid"):
     """Schema for area net volume."""
 
     area_code: str | None = Field(default=None, alias="areaCode", min_length=0)
     net_volumes: list[ContractNetVolume] | None = Field(default=None, alias="netVolumes")
 
 
-class PortfolioNetVolume(BaseModel):
+class PortfolioNetVolume(BaseModel, extra="forbid"):
     """Schema for portfolio net volume."""
 
     portfolio: str | None = Field(default=None, min_length=0)
@@ -100,7 +104,7 @@ class PortfolioNetVolume(BaseModel):
     area_net_volumes: list[AreaNetVolume] | None = Field(default=None, alias="areaNetVolumes")
 
 
-class CurrencyPrice(BaseModel):
+class CurrencyPrice(BaseModel, extra="forbid"):
     """Schema for currency price details."""
 
     currency_code: str | None = Field(default=None, alias="currencyCode", min_length=0)
@@ -108,30 +112,30 @@ class CurrencyPrice(BaseModel):
     status: str = Field(...)
 
 
-class AreaPrice(BaseModel):
+class AreaPrice(BaseModel, extra="forbid"):
     """Schema for area price details."""
 
     area_code: str | None = Field(default=None, alias="areaCode", min_length=0)
     prices: list[CurrencyPrice] | None = Field(default=None)
 
 
-class ContractPrice(BaseModel):
+class ContractPrice(BaseModel, extra="forbid"):
     """Schema for contract price details."""
 
     contract_id: str | None = Field(default=None, alias="contractId", min_length=0)
-    delivery_start: datetime.datetime = Field(..., alias="deliveryStart")
-    delivery_end: datetime.datetime = Field(..., alias="deliveryEnd")
+    delivery_start: datetime= Field(..., alias="deliveryStart")
+    delivery_end: datetime= Field(..., alias="deliveryEnd")
     areas: list[AreaPrice] | None = Field(default=None)
 
 
-class BlockPeriod(BaseModel):
+class BlockPeriod(BaseModel, extra="forbid"):
     """Schema for block period details."""
 
-    contract_id: str = Field(..., alias="contractId", min_length=1)
+    contract_id: Annotated[str, Field(alias="contractId", min_length=1)]
     volume: float = Field(...)
 
 
-class Block(BaseModel):
+class Block(BaseModel, extra="forbid"):
     """Schema for block details."""
 
     name: str = Field(..., min_length=1)
@@ -150,7 +154,7 @@ class BlockResponse(Block):
     state: str = Field(...)
 
 
-class Order(BaseModel):
+class Order(BaseModel, extra="forbid"):
     """Represents order details for the NPS Auction API."""
 
     auction_id: str = Field(..., alias="auctionId", min_length=1)
@@ -170,7 +174,7 @@ class OrderStateType(str, Enum):
     NONE = "None"
 
 
-class OrderResponse(BaseModel):
+class OrderResponse(BaseModel, extra="forbid"):
     """Schema for order response details."""
 
     order_id: UUID = Field(..., alias="orderId")
@@ -179,7 +183,7 @@ class OrderResponse(BaseModel):
     portfolio: str | None = Field(default=None, min_length=0)
     area_code: str | None = Field(default=None, alias="areaCode", min_length=0)
     modifier: str | None = Field(default=None, min_length=0)
-    modified: datetime.datetime = Field(...)
+    modified: datetime= Field(...)
     currency_code: str | None = Field(default=None, alias="currencyCode", min_length=0)
     comment: str | None = Field(default=None, min_length=0)
     resolution_seconds: int = Field(..., alias="resolutionSeconds")
@@ -201,34 +205,34 @@ class AuctionResultState(str, Enum):
     INITIAL_PRICE = "InitialPrice"
 
 
-class Trade(BaseModel):
+class Trade(BaseModel, extra="forbid"):
     """Schema for trade details."""
 
     trade_id: str | None = Field(default=None, alias="tradeId", min_length=0)
     contract_id: str | None = Field(default=None, alias="contractId", min_length=0)
-    delivery_start: datetime.datetime = Field(..., alias="deliveryStart")
-    delivery_end: datetime.datetime = Field(..., alias="deliveryEnd")
+    delivery_start: datetime= Field(..., alias="deliveryStart")
+    delivery_end: datetime= Field(..., alias="deliveryEnd")
     volume: float = Field(...)
     price: float = Field(...)
     side: TradeSide = Field(...)
     status: AuctionResultState = Field(...)
 
 
-class CurvePoint(BaseModel):
+class CurvePoint(BaseModel, extra="forbid"):
     """Schema for curve point details."""
 
     price: float = Field(...)
     volume: float = Field(...)
 
 
-class Curve(BaseModel):
+class Curve(BaseModel, extra="forbid"):
     """Schema for curve details."""
 
     contract_id: str = Field(..., alias="contractId", min_length=1)
     curve_points: list[CurvePoint] = Field(..., alias="curvePoints")
 
 
-class ValidatedCurve(BaseModel):
+class ValidatedCurve(BaseModel, extra="forbid"):
     """Schema for validated curve details."""
 
     id: UUID = Field(...)
