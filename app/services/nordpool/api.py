@@ -3,6 +3,8 @@ import typing
 
 import requests
 
+from app.services.nordpool.schema.curve_order_response_schema import CurveOrder
+
 
 # Definitions
 # Product: A traded product. Ex.: "CWE_H_DA_1" for CWE Hour Day Ahead 19.05.2025. It is available in several area codes
@@ -115,9 +117,12 @@ class AuctionAPI:
             requests.HTTPError: If the API request fails.
         """
         headers = {"Authorization": f"Bearer {self.token}"}
-        if json is not None:
-            headers["Content-Type"] = "application/json"
         response = requests.request(method, url, params=params, json=json, headers=headers, timeout=TIMEOUT)
+        if not response.ok:
+            try:
+                print("Response JSON:", response.json())  # noqa: T201
+            except ValueError:
+                print("Response body:", response.text)  # noqa: T201
         response.raise_for_status()
         return response.json()
 
@@ -265,7 +270,7 @@ class AuctionAPI:
         url = f"{self.base_url}{ENDPOINTS['block_order'].format(version=self.version, orderId=order_id)}"
         return self._make_request(PATCH, url, json=patch_data)
 
-    def post_curve_order(self, curve_order: dict[str, typing.Any]) -> dict[str, typing.Any]:
+    def post_curve_order(self, curve_order: CurveOrder) -> dict[str, typing.Any]:
         """Post a new curve order.
 
         Args:

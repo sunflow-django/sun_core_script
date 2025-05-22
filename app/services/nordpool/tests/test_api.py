@@ -26,7 +26,7 @@ def test_api_get_auctions(api: AuctionAPI) -> None:
         assert "state" in auction, "Auction should have a 'state'"
         assert "closeForBidding" in auction, "Auction should have 'closeForBidding'"
         assert "deliveryStart" in auction, "Auction should have 'deliveryStart'"
-        assert "deliveryEnd" in auction, "Auction should have 'deliveryEnd'"
+        assert "delivery_end" in auction, "Auction should have 'delivery_end'"
 
 
 # TODO: OK
@@ -41,7 +41,7 @@ def test_api_get_auction_detail(api: AuctionAPI) -> None:
         assert "state" in auction_detail, "Auction detail should have 'state'"
         assert "closeForBidding" in auction_detail, "Auction detail should have 'closeForBidding'"
         assert "deliveryStart" in auction_detail, "Auction detail should have 'deliveryStart'"
-        assert "deliveryEnd" in auction_detail, "Auction detail should have 'deliveryEnd'"
+        assert "delivery_end" in auction_detail, "Auction detail should have 'delivery_end'"
 
         assert "availableOrderTypes" in auction_detail, "Auction detail should have 'availableOrderTypes'"
         assert isinstance(auction_detail["availableOrderTypes"], list), "availableOrderTypes should be a list"
