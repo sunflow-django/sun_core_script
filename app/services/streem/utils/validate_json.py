@@ -12,10 +12,10 @@ from app.services.streem.utils.day_boundaries import day_boundaries
 from app.services.streem.utils.validation_context import ValidationContext
 
 
-JsonResponse = list[dict[str, str | float]]  # List of dictionaries with 'date' (str) and 'data' (float) keys.
+StreemForecastResponse = list[dict[str, str | float]]  # List of dictionaries with 'date' (str) and 'data' (float) keys.
 
 
-def _validate_schema(json_data: JsonResponse, context: ValidationContext) -> bool:
+def _validate_schema(json_data: StreemForecastResponse, context: ValidationContext) -> bool:
     """
     Validate the structure of JSON-like data (list).
 
@@ -57,7 +57,7 @@ def _validate_schema(json_data: JsonResponse, context: ValidationContext) -> boo
     return True
 
 
-def _validate_dates(json_data: JsonResponse, context: ValidationContext) -> bool:
+def _validate_dates(json_data: StreemForecastResponse, context: ValidationContext) -> bool:
     """
     Validate the time series aspects of JSON data.
 
@@ -106,7 +106,7 @@ def _validate_dates(json_data: JsonResponse, context: ValidationContext) -> bool
     return actual_dates == expected_dates
 
 
-def validate_json(json_data: JsonResponse, context: ValidationContext) -> bool:
+def validate_json(json_data: StreemForecastResponse, context: ValidationContext) -> bool:
     """
     Validate JSON data against a ValidationContext by combining structure and date checks.
 
