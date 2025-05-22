@@ -46,8 +46,8 @@ class Contract(BaseModel, extra="forbid"):
     """Schema for contract details."""
 
     id: str | None = Field(default=None, min_length=0)
-    delivery_start: datetime= Field(..., alias="deliveryStart")
-    delivery_end: datetime= Field(..., alias="deliveryEnd")
+    delivery_start: datetime = Field(..., alias="deliveryStart")
+    delivery_end: datetime = Field(..., alias="deliveryEnd")
 
 
 class AreaContractGroup(BaseModel, extra="forbid"):
@@ -85,8 +85,8 @@ class ContractNetVolume(BaseModel, extra="forbid"):
 
     net_volume: float | None = Field(default=None, alias="netVolume")
     contract_id: str | None = Field(default=None, alias="contractId", min_length=0)
-    delivery_start: datetime= Field(..., alias="deliveryStart")
-    delivery_end: datetime= Field(..., alias="deliveryEnd")
+    delivery_start: datetime = Field(..., alias="deliveryStart")
+    delivery_end: datetime = Field(..., alias="deliveryEnd")
 
 
 class AreaNetVolume(BaseModel, extra="forbid"):
@@ -123,8 +123,8 @@ class ContractPrice(BaseModel, extra="forbid"):
     """Schema for contract price details."""
 
     contract_id: str | None = Field(default=None, alias="contractId", min_length=0)
-    delivery_start: datetime= Field(..., alias="deliveryStart")
-    delivery_end: datetime= Field(..., alias="deliveryEnd")
+    delivery_start: datetime = Field(..., alias="deliveryStart")
+    delivery_end: datetime = Field(..., alias="deliveryEnd")
     areas: list[AreaPrice] | None = Field(default=None)
 
 
@@ -183,7 +183,7 @@ class OrderResponse(BaseModel, extra="forbid"):
     portfolio: str | None = Field(default=None, min_length=0)
     area_code: str | None = Field(default=None, alias="areaCode", min_length=0)
     modifier: str | None = Field(default=None, min_length=0)
-    modified: datetime= Field(...)
+    modified: datetime = Field(...)
     currency_code: str | None = Field(default=None, alias="currencyCode", min_length=0)
     comment: str | None = Field(default=None, min_length=0)
     resolution_seconds: int = Field(..., alias="resolutionSeconds")
@@ -210,8 +210,8 @@ class Trade(BaseModel, extra="forbid"):
 
     trade_id: str | None = Field(default=None, alias="tradeId", min_length=0)
     contract_id: str | None = Field(default=None, alias="contractId", min_length=0)
-    delivery_start: datetime= Field(..., alias="deliveryStart")
-    delivery_end: datetime= Field(..., alias="deliveryEnd")
+    delivery_start: datetime = Field(..., alias="deliveryStart")
+    delivery_end: datetime = Field(..., alias="deliveryEnd")
     volume: float = Field(...)
     price: float = Field(...)
     side: TradeSide = Field(...)
@@ -225,11 +225,17 @@ class CurvePoint(BaseModel, extra="forbid"):
     volume: float = Field(...)
 
 
-class Curve(BaseModel, extra="forbid"):
+class CurveOrder(BaseModel, extra="forbid"):
     """Schema for curve details."""
 
     contract_id: str = Field(..., alias="contractId", min_length=1)
     curve_points: list[CurvePoint] = Field(..., alias="curvePoints")
+
+
+class CurveOrder(Order, extra="forbid"):
+    """Represents order details for the NPS Crurve Order Auction API."""
+
+    curves: list[CurveOrder]
 
 
 class ValidatedCurve(BaseModel, extra="forbid"):
