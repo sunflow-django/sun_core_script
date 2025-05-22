@@ -5,6 +5,7 @@ from enum import Enum
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
+from pydantic import RootModel
 
 from app.constants.time_zones import PARIS_TZ
 
@@ -18,7 +19,7 @@ class EnergyType(str, Enum):
     OTHER = "other"
 
 
-class Installation(BaseModel):
+class Installation(BaseModel, extra="forbid"):
     """Schema for installation data.
 
     Attributes:
@@ -41,17 +42,17 @@ class Installation(BaseModel):
     name: str
 
 
-class Installations(BaseModel):
+class Installations(RootModel):
     """Schema for a list of installations.
 
     Attributes:
-        installations: List of installation objects.
+        root: List of installation objects.
 
     Returns:
         Installations: The validated installations instance.
     """
 
-    installations: list[Installation] = Field(default_factory=list)
+    root: list[Installation] = Field(default_factory=list)
 
     def client_ids(self) -> Iterator[str]:
         """Yield client IDs from the installations.
@@ -59,9 +60,9 @@ class Installations(BaseModel):
         Yields:
             str: A client ID, excluding None values.
         """
-        for inst in self.installations:
-            if inst.client_id is not None:
-                yield inst.client_id
+        for client in self.root:
+            if client.client_id is not None:
+                yield client.client_id
 
     def names(self) -> Iterator[str]:
         """Yield names from the installations.
@@ -69,11 +70,11 @@ class Installations(BaseModel):
         Yields:
             str: An installation name.
         """
-        for inst in self.installations:
-            yield inst.name
+        for client in self.root:
+            yield client.name
 
 
-class Alert(BaseModel):
+class Alert(BaseModel, extra="forbid"):
     """Schema for alert data.
 
     Attributes:
@@ -94,17 +95,17 @@ class Alert(BaseModel):
     closed_at: datetime | None = None
 
 
-class Alerts(BaseModel):
+class Alerts(RootModel):
     """Schema for a list of alerts.
 
     Attributes:
-        alerts: List of alert objects.
+        root: List of alert objects.
 
     Returns:
         Alerts: The validated alerts instance.
     """
 
-    alerts: list[Alert] = Field(default_factory=list)
+    root: list[Alert] = Field(default_factory=list)
 
     def installation_names(self) -> Iterator[str]:
         """Yield installation names from the alerts.
@@ -112,11 +113,11 @@ class Alerts(BaseModel):
         Yields:
             str: An installation name.
         """
-        for alert in self.alerts:
+        for alert in self.root:
             yield alert.installation_name
 
 
-class LoadCurvePoint(BaseModel):
+class LoadCurvePoint(BaseModel, extra="forbid"):
     """Schema for a single load curve point.
 
     Attributes:
@@ -131,7 +132,7 @@ class LoadCurvePoint(BaseModel):
     date: datetime = Field(default_factory=lambda: datetime.now(tz=PARIS_TZ))
 
 
-class LoadCurve(BaseModel):
+class LoadCurve(BaseModel, extra="forbid"):
     """Schema for load curve data.
 
     Attributes:

@@ -40,6 +40,21 @@ def test_installation_validation() -> None:
     assert installation.name == "Paris Solar Plant"
 
 
+def test_installation_extra_fields() -> None:
+    """Test Installation rejects extra fields due to extra='forbid'."""
+    data = {
+        "client_id": "client123",
+        "energy": "solar",
+        "external_ref": "ref456",
+        "latitude": PARIS_LATITUDE,
+        "longitude": PARIS_LONGITUDE,
+        "name": "Paris Solar Plant",
+        "extra_field": "invalid",
+    }
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        Installation(**data)
+
+
 @pytest.mark.parametrize(
     ("data", "expected_name", "expected_energy"),
     [
@@ -101,38 +116,50 @@ def test_installation_missing_name() -> None:
 
 def test_installations_validation() -> None:
     """Test Installations model validation."""
-    data = {
-        "installations": [
-            {
-                "client_id": "client123",
-                "energy": "solar",
-                "name": "Paris Solar Plant",
-            },
-            {
-                "client_id": None,
-                "energy": "wind",
-                "name": "Brittany Wind Farm",
-            },
-        ],
-    }
-    installations = Installations(**data)
-    assert len(installations.installations) == 2  # noqa: PLR2004
-    assert installations.installations[0].client_id == "client123"
-    assert installations.installations[0].name == "Paris Solar Plant"
-    assert installations.installations[1].client_id is None
-    assert installations.installations[1].name == "Brittany Wind Farm"
+    data = [
+        {
+            "client_id": "client123",
+            "energy": "solar",
+            "name": "Paris Solar Plant",
+        },
+        {
+            "client_id": None,
+            "energy": "wind",
+            "name": "Brittany Wind Farm",
+        },
+    ]
+    installations = Installations.model_validate(data)
+    assert len(installations.root) == 2  # noqa: PLR2004
+    assert installations.root[0].client_id == "client123"
+    assert installations.root[0].name == "Paris Solar Plant"
+    assert installations.root[1].client_id is None
+    assert installations.root[1].name == "Brittany Wind Farm"
+
+
+def test_installations_extra_fields() -> None:
+    """Test Installations rejects extra fields in Installation objects."""
+    data = [
+        {
+            "client_id": "client123",
+            "energy": "solar",
+            "name": "Paris Solar Plant",
+            "extra_field": "invalid",
+        },
+    ]
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        Installations.model_validate(data)
 
 
 def test_installations_empty() -> None:
     """Test Installations with empty list."""
-    installations = Installations(installations=[])
-    assert installations.installations == []
+    installations = Installations.model_validate([])
+    assert installations.root == []
 
 
 def test_installations_client_ids() -> None:
     """Test Installations client_ids iterator."""
-    installations = Installations(
-        installations=[
+    installations = Installations.model_validate(
+        [
             Installation(name="Plant1", client_id="client1"),
             Installation(name="Plant2", client_id=None),
             Installation(name="Plant3", client_id="client3"),
@@ -144,8 +171,8 @@ def test_installations_client_ids() -> None:
 
 def test_installations_names() -> None:
     """Test Installations names iterator."""
-    installations = Installations(
-        installations=[
+    installations = Installations.model_validate(
+        [
             Installation(name="Plant1", client_id="client1"),
             Installation(name="Plant2", client_id=None),
             Installation(name="Plant3", client_id="client3"),
@@ -187,8 +214,8 @@ def test_installations_parametrized(
     expected_names: list[str],
 ) -> None:
     """Test Installations model with various input configurations."""
-    installations = Installations(
-        installations=[Installation(**data) for data in installations_data],
+    installations = Installations.model_validate(
+        [Installation(**data) for data in installations_data],
     )
     assert list(installations.client_ids()) == expected_client_ids
     assert list(installations.names()) == expected_names
@@ -207,6 +234,19 @@ def test_alert_validation() -> None:
     assert alert.created_at == datetime(2025, 5, 20, 12, 0, tzinfo=PARIS_TZ)
     assert alert.installation_name == "Paris Solar Plant"
     assert alert.type == "Overheating"
+
+
+def test_alert_extra_fields() -> None:
+    """Test Alert rejects extra fields due to extra='forbid'."""
+    data = {
+        "closed_at": "2025-05-21T18:00:00+02:00",
+        "created_at": "2025-05-20T12:00:00+02:00",
+        "installation_name": "Paris Solar Plant",
+        "type": "Overheating",
+        "extra_field": "invalid",
+    }
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        Alert(**data)
 
 
 @pytest.mark.parametrize(
@@ -257,38 +297,50 @@ def test_alert_missing_required() -> None:
 
 def test_alerts_validation() -> None:
     """Test Alerts model validation."""
-    data = {
-        "alerts": [
-            {
-                "installation_name": "Paris Solar Plant",
-                "type": "Overheating",
-                "created_at": "2025-05-20T12:00:00+02:00",
-            },
-            {
-                "installation_name": "Brittany Wind Farm",
-                "type": "Maintenance",
-                "created_at": "2025-05-20T13:00:00+02:00",
-            },
-        ],
-    }
-    alerts = Alerts(**data)
-    assert len(alerts.alerts) == 2  # noqa: PLR2004
-    assert alerts.alerts[0].installation_name == "Paris Solar Plant"
-    assert alerts.alerts[0].type == "Overheating"
-    assert alerts.alerts[1].installation_name == "Brittany Wind Farm"
-    assert alerts.alerts[1].type == "Maintenance"
+    data = [
+        {
+            "installation_name": "Paris Solar Plant",
+            "type": "Overheating",
+            "created_at": "2025-05-20T12:00:00+02:00",
+        },
+        {
+            "installation_name": "Brittany Wind Farm",
+            "type": "Maintenance",
+            "created_at": "2025-05-20T13:00:00+02:00",
+        },
+    ]
+    alerts = Alerts.model_validate(data)
+    assert len(alerts.root) == 2  # noqa: PLR2004
+    assert alerts.root[0].installation_name == "Paris Solar Plant"
+    assert alerts.root[0].type == "Overheating"
+    assert alerts.root[1].installation_name == "Brittany Wind Farm"
+    assert alerts.root[1].type == "Maintenance"
+
+
+def test_alerts_extra_fields() -> None:
+    """Test Alerts rejects extra fields in Alert objects."""
+    data = [
+        {
+            "installation_name": "Paris Solar Plant",
+            "type": "Overheating",
+            "created_at": "2025-05-20T12:00:00+02:00",
+            "extra_field": "invalid",
+        },
+    ]
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        Alerts.model_validate(data)
 
 
 def test_alerts_empty() -> None:
     """Test Alerts with empty list."""
-    alerts = Alerts(alerts=[])
-    assert alerts.alerts == []
+    alerts = Alerts.model_validate([])
+    assert alerts.root == []
 
 
 def test_alerts_installation_names() -> None:
     """Test Alerts installation_names iterator."""
-    alerts = Alerts(
-        alerts=[
+    alerts = Alerts.model_validate(
+        [
             Alert(
                 installation_name="Plant1",
                 type="Overheating",
@@ -344,7 +396,7 @@ def test_alerts_parametrized(
     expected_names: list[str],
 ) -> None:
     """Test Alerts model with various input configurations."""
-    alerts = Alerts(alerts=[Alert(**data) for data in alerts_data])
+    alerts = Alerts.model_validate([Alert(**data) for data in alerts_data])
     assert list(alerts.installation_names()) == expected_names
 
 
@@ -368,7 +420,7 @@ def test_load_curve_validation() -> None:
         ],
     }
     curve = LoadCurve(**data)
-    assert len(curve.points) == 2  # noqa: PLR2004
+    assert len(curve.points) == 2
     assert curve.points[0].data == DATA_1
     assert curve.points[0].date == datetime(2025, 5, 21, 18, 0, tzinfo=PARIS_TZ)
     assert curve.points[1].data == DATA_2
