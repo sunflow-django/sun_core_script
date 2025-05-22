@@ -224,18 +224,15 @@ class CurvePoint(BaseModel, extra="forbid"):
     price: float = Field(...)
     volume: float = Field(...)
 
+class Curve(BaseModel, extra="forbid"):
 
-class CurveOrder(BaseModel, extra="forbid"):
-    """Schema for curve details."""
-
-    contract_id: str = Field(..., alias="contractId", min_length=1)
-    curve_points: list[CurvePoint] = Field(..., alias="curvePoints")
-
+    contract_id: Annotated[str, Field(alias="contractId", min_length=1)]
+    curve_points: Annotated[list[CurvePoint], Field(alias="curvePoints")]
 
 class CurveOrder(Order, extra="forbid"):
-    """Represents order details for the NPS Crurve Order Auction API."""
+    """Represents order details for the NPS Curve Order Auction API."""
 
-    curves: list[CurveOrder]
+    curves: list[Curve] = Field(...)
 
 
 class ValidatedCurve(BaseModel, extra="forbid"):
