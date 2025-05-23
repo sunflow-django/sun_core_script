@@ -4,7 +4,7 @@ from datetime import timedelta
 from app.constants.time_zones import PARIS_TZ
 
 
-def get_tomorrow_boundaries() -> tuple[datetime, datetime]:
+def tomorrow_boundaries() -> tuple[datetime, datetime]:
     """
     Returns the [start, end) boundaries for tomorrow in Paris time.
     End is exclusive (00:00 of the day after tomorrow).
@@ -14,7 +14,7 @@ def get_tomorrow_boundaries() -> tuple[datetime, datetime]:
     return tomorrow_start, tomorrow_end
 
 
-def get_tomorrow_iso() -> str:
+def tomorrow_iso() -> str:
     """
     Returns tomorrow start of day as an ISO string, in Paris time
 
@@ -25,7 +25,7 @@ def get_tomorrow_iso() -> str:
     return tomorrow_start.isoformat()
 
 
-def get_tomorrow_str() -> str:
+def tomorrow_str_dash() -> str:
     """
     Returns tomorrow's date as 'YYYY-MM-DD' string, in Paris time.
 
@@ -33,3 +33,13 @@ def get_tomorrow_str() -> str:
     """
     tomorrow = datetime.now(tz=PARIS_TZ) + timedelta(days=1)
     return tomorrow.strftime("%Y-%m-%d")
+
+
+def tomorrow_str_no_dash() -> str:
+    """
+    Returns tomorrow's date as 'YYYYMMDD' string, in Paris time.
+
+    Example: "20250524"
+    """
+    tomorrow = datetime.now(tz=PARIS_TZ) + timedelta(days=1)
+    return tomorrow.strftime("%Y%m%d")
