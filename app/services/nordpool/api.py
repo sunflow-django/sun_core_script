@@ -1,23 +1,37 @@
 import base64
-import typing
+from typing import Any
 
 import requests
 
+from app.services.nordpool.schema import AuctionMultiResolutionResponse
+from app.services.nordpool.schema import AuctionPrice
+from app.services.nordpool.schema import AuctionResponse
+from app.services.nordpool.schema import BlockList
+from app.services.nordpool.schema import BlockListResponse
+from app.services.nordpool.schema import BlockOrderPatch
+from app.services.nordpool.schema import BlockResultResponse
+from app.services.nordpool.schema import CombinedOrdersResponse
 from app.services.nordpool.schema import CurveOrder
+from app.services.nordpool.schema import CurveOrderPatch
+from app.services.nordpool.schema import CurveOrderResponse
+from app.services.nordpool.schema import OrderResultResponse
+from app.services.nordpool.schema import PortfolioVolumeResponse
+from app.services.nordpool.schema import ProblemDetails
+from app.services.nordpool.schema import ReasonabilityResultsInfo
 
 
 # Definitions
-# Product: A traded product. Ex.: "CWE_H_DA_1" for CWE Hour Day Ahead 19.05.2025. It is available in several area codes
-# Area codes: A country. Ex.: "FR" for France
-# Auction: A trading day for a product (no area code). Ex.: "CWE_H_DA_1-20250519", for CWE Hour Day Ahead 19.05.2025
-# Contract:  A hour for an auction (no area code). Ex: "CWE_H_DA_1-20250520-01"
+# - Product: A traded product. Ex.: "CWE_H_DA_1" for CWE Hour Day Ahead on 19.05.2025. Available in several area codes
+# - Area codes: A country. Ex.: "FR" for France
+# - Auction: A trading day for a product (no area code). Ex.: "CWE_H_DA_1-20250519", for CWE Hour Day Ahead 19.05.2025
+# - Contract:  A trading hour for an auction (no area code). Ex: "CWE_H_DA_1-20250520-01"
 
 # Urls
 BASE_URL_TEST = "https://auctions-api.test.nordpoolgroup.com"
 TOKEN_URL_TEST = "https://sts.test.nordpoolgroup.com/connect/token"
 
 BASE_URL_PROD = "https://auctions-api.nordpoolgroup.com"
-TOKEN_URL_PROD = "https://sts..nordpoolgroup.com/connect/token"
+TOKEN_URL_PROD = "https://sts.nordpoolgroup.com/connect/token"
 
 ENDPOINTS = {
     "auctions": "/api/v{version}/auctions",
@@ -30,7 +44,7 @@ ENDPOINTS = {
     "block_orders": "/api/v{version}/blockorders",
     "curve_order": "/api/v{version}/curveorders/{orderId}",
     "curve_orders": "/api/v{version}/curveorders",
-    "inspection_result": "/api/v{version}/auctions/{externalAuctionId}/orders/{orderId}/results",
+    "reasonability_result": "/api/v{version}/auctions/{externalAuctionId}/orders/{orderId}/results",
     "state": "/api/state",
 }
 
@@ -49,6 +63,12 @@ CLIENT_AUTHORISATION_STRING = base64.b64encode(f"{CLIENT_AUCTION_API}:{CLIENT_AU
 
 
 class AuctionAPI:
+    """Handle raw connections to Nordpool Auction API.
+
+    This class provides methods to interact with the Nordpool Auction API, including authentication,
+    retrieving auctions, orders, trades, prices, portfolio volumes, and managing block and curve orders.
+    """
+
     def __init__(
         self,
         username: str,
@@ -56,12 +76,13 @@ class AuctionAPI:
         *,
         prod: bool = False,
     ) -> None:
-        """Initialize the AuctionAPI client.
+        """Initialize the AuctionAPI client with authentication credentials.
 
         Args:
-            username (str): The username for authentication.
-            password (str): The password for authentication.
-            prod (bool): Set to True for production environment
+            username: The username for API authentication.
+            password: The password for API authentication.
+            prod: If True, use the production environment; otherwise, use the test environment. Defaults to False.
+
         """
         self.username: str = username
         self.password: str = password
@@ -76,7 +97,11 @@ class AuctionAPI:
         self.authenticate()
 
     def authenticate(self) -> None:
-        """Authenticate and obtain an access token using OAuth2 password flow."""
+        """Authenticate with the Nordpool API using OAuth2 password flow to obtain an access token.
+
+        Raises:
+            requests.HTTPError: If the authentication request fails with a non-200 status code.
+        """
         data = {
             "grant_type": "password",
             "username": self.username,
@@ -100,45 +125,58 @@ class AuctionAPI:
         method: str,
         url: str,
         params: dict[str, str | list[str]] | None = None,
-        json: dict[str, typing.Any] | None = None,
-    ) -> dict[str, typing.Any] | list[dict[str, typing.Any]]:
-        """Helper method to make authenticated HTTP requests.
+        json: dict[str, Any] | None = None,
+    ) -> tuple[int, dict[str, Any] | ProblemDetails]:
+        """Make an authenticated HTTP request to the Nordpool API.
 
         Args:
-            method (str): The HTTP method (e.g., "GET", "POST").
-            url (str): The URL to request.
-            params (dict[str, str | list[str]], optional): Query parameters.
-            json (dict[str, Any], optional): JSON data for the request body.
+            method: The HTTP method (e.g., "GET", "POST", "PATCH").
+            url: The API endpoint URL.
+            params: Query parameters for the request. Defaults to None.
+            json: JSON data for the request body. Defaults to None.
 
         Returns:
-            dict[str, Any] | list[dict[str, Any]]: The JSON response.
+            A tuple containing the HTTP status code and either the JSON response as a dictionary
+            or a ProblemDetails object if the response is not JSON-parsable or an error occurs.
 
         Raises:
-            requests.HTTPError: If the API request fails.
+            requests.RequestException: If a network error occurs during the request.
         """
         headers = {"Authorization": f"Bearer {self.token}"}
-        response = requests.request(method, url, params=params, json=json, headers=headers, timeout=TIMEOUT)
-        if not response.ok:
-            try:
-                print("Response JSON:", response.json())  # noqa: T201
-            except ValueError:
-                print("Response body:", response.text)  # noqa: T201
-        response.raise_for_status()
-        return response.json()
+        try:
+            response = requests.request(method, url, params=params, json=json, headers=headers, timeout=TIMEOUT)
+            try:  # Normal response
+                return response.status_code, response.json()
+            except ValueError:  # Not a json response
+                pb = ProblemDetails(
+                    title="ValueError",
+                    status=response.status_code,
+                    detail=response.text,
+                )
+                return response.status_code, pb
+        except requests.RequestException:  # Unidentified error
+            pb = ProblemDetails(
+                title="Unidentified error",
+                status=0,
+                detail="Request failed. Network error ?",
+            )
+            return 0, pb
 
+    # Auctions
     def get_auctions(
         self,
         close_bidding_from: str | None = None,
         close_bidding_to: str | None = None,
-    ) -> list[dict[str, typing.Any]]:
-        """Get auctions that are closed for bidding during the given time period.
+    ) -> tuple[int, AuctionResponse | ProblemDetails]:
+        """Retrieve auctions that are closed for bidding within the specified time period.
 
         Args:
-            close_bidding_from (str | None): Filter auctions with close bidding from this date-time.
-            close_bidding_to (str | None): Filter auctions with close bidding to this date-time.
+            close_bidding_from: Filter auctions with close bidding starting from this date (ISO 8601 format)
+            close_bidding_to: Filter auctions with close bidding ending at this date (ISO 8601 format)
 
         Returns:
-            list[dict[str, Any]]: List of auction objects.
+            A tuple containing the HTTP status code and either an AuctionResponse object or a ProblemDetails object if
+            an error occurs.
 
         Raises:
             requests.HTTPError: If the API request fails with a non-200 status code.
@@ -151,38 +189,22 @@ class AuctionAPI:
             params["closeBiddingTo"] = close_bidding_to
         return self._make_request(GET, url, params=params)
 
-    def get_auction_detail(self, auction_id: str) -> list[dict[str, typing.Any]]:
-        """Get details of a specific auction.
-
-        Args:
-            auction_id (str): The ID of the auction.
-
-        Returns:
-            list[dict[str, Any]]: List of auction multi-resolution response objects.
-
-        Raises:
-            requests.HTTPError: If the API request fails with a non-200 status code.
-        """
-        url = f"{self.base_url}{ENDPOINTS['auction'].format(version=self.version, auctionId=auction_id)}"
-        return self._make_request(GET, url)
-
     def get_orders(
         self,
         auction_id: str,
         portfolios: list[str] | None = None,
         area_codes: list[str] | None = None,
-    ) -> dict[str, typing.Any]:
-        """
-        Get orders placed for a specific auction, limited to company, portfolios and areas user has access to.
-        Selection can be filtered by specifying portfolios and areas in the search parameters. Returns all order types.
+    ) -> tuple[int, CombinedOrdersResponse | ProblemDetails]:
+        """Retrieve orders for a specific auction, filtered by portfolios and area codes.
 
         Args:
-            auction_id (str): The ID of the auction.
-            portfolios (list[str] | None): List of portfolios to filter.
-            area_codes (list[str] | None): List of area codes to filter.
+            auction_id: The ID of the auction (e.g., "CWE_H_DA_1-20250519").
+            portfolios: List of portfolio IDs to filter the orders. Defaults to None.
+            area_codes: List of area codes (e.g., "FR") to filter the orders. Defaults to None.
 
         Returns:
-            dict[str, Any]: Combined orders response.
+            A tuple containing the HTTP status code and either a CombinedOrdersResponse object or a ProblemDetails
+            object if an error occurs.
 
         Raises:
             requests.HTTPError: If the API request fails with a non-200 status code.
@@ -200,18 +222,17 @@ class AuctionAPI:
         auction_id: str,
         portfolios: list[str] | None = None,
         area_codes: list[str] | None = None,
-    ) -> list[dict[str, typing.Any]]:
-        """
-        Get trades for a specific auction, limited to company, portfolios and areas user has access to.
-        Selection can be filtered by specifying portfolios and areas in the search parameters. Returns all ord
+    ) -> tuple[int, OrderResultResponse | BlockResultResponse | ProblemDetails]:
+        """Retrieve trades for a specific auction, filtered by portfolios and area codes.
 
         Args:
-            auction_id (str): The ID of the auction.
-            portfolios (list[str] | None): List of portfolios to filter.
-            area_codes (list[str] | None): List of area codes to filter.
+            auction_id: The ID of the auction (e.g., "CWE_H_DA_1-20250519").
+            portfolios: List of portfolio IDs to filter the trades. Defaults to None.
+            area_codes: List of area codes (e.g., "FR") to filter the trades. Defaults to None.
 
         Returns:
-            list[dict[str, Any]]: List of trade objects.
+            A tuple containing the HTTP status code and either an OrderResultResponse, BlockResultResponse, or
+            ProblemDetails object if an error occurs.
 
         Raises:
             requests.HTTPError: If the API request fails with a non-200 status code.
@@ -224,108 +245,18 @@ class AuctionAPI:
             params["areaCodes"] = area_codes
         return self._make_request(GET, url, params=params)
 
-    def post_block_order(self, block_list: dict[str, typing.Any]) -> dict[str, typing.Any]:
-        """Post a new block list.
+    def get_prices(self, auction_id: str) -> tuple[int, AuctionPrice | ProblemDetails]:
+        """Retrieve prices for a specific auction.
+
+        Note:
+            Prices are only available for auctions up to seven days in the past.
 
         Args:
-            block_list (dict[str, Any]): The block list data.
+            auction_id: The ID of the auction (e.g., "CWE_H_DA_1-20250519").
 
         Returns:
-            dict[str, Any]: Created block list response.
-
-        Raises:
-            requests.HTTPError: If the API request fails with a non-200 status code.
-        """
-        url = f"{self.base_url}{ENDPOINTS['block_orders'].format(version=self.version)}"
-        return self._make_request(POST, url, json=block_list)
-
-    def get_block_order(self, order_id: str) -> dict[str, typing.Any]:
-        """Get a block list by order ID.
-
-        Args:
-            order_id (str): The ID of the order.
-
-        Returns:
-            dict[str, Any]: Block list response.
-
-        Raises:
-            requests.HTTPError: If the API request fails with a non-200 status code.
-        """
-        url = f"{self.base_url}{ENDPOINTS['block_order'].format(version=self.version, orderId=order_id)}"
-        return self._make_request(GET, url)
-
-    def patch_block_order(self, order_id: str, patch_data: dict[str, typing.Any]) -> dict[str, typing.Any]:
-        """Patch a block order.
-
-        Args:
-            order_id (str): The ID of the order.
-            patch_data (dict[str, Any]): The patch data for the block order.
-
-        Returns:
-            dict[str, Any]: Updated block list response.
-
-        Raises:
-            requests.HTTPError: If the API request fails with a non-200 status code.
-        """
-        url = f"{self.base_url}{ENDPOINTS['block_order'].format(version=self.version, orderId=order_id)}"
-        return self._make_request(PATCH, url, json=patch_data)
-
-    def post_curve_order(self, curve_order: CurveOrder) -> dict[str, typing.Any]:
-        """Post a new curve order.
-
-        Args:
-            curve_order (dict[str, Any]): The curve order data.
-
-        Returns:
-            dict[str, Any]: Created curve order response.
-
-        Raises:
-            requests.HTTPError: If the API request fails with a non-200 status code.
-        """
-        url = f"{self.base_url}{ENDPOINTS['curve_orders'].format(version=self.version)}"
-        return self._make_request(POST, url, json=curve_order)
-
-    def get_curve_order(self, order_id: str) -> dict[str, typing.Any]:
-        """Get a curve order by order ID.
-
-        Args:
-            order_id (str): The ID of the order.
-
-        Returns:
-            dict[str, Any]: Curve order response.
-
-        Raises:
-            requests.HTTPError: If the API request fails with a non-200 status code.
-        """
-        url = f"{self.base_url}{ENDPOINTS['curve_order'].format(version=self.version, orderId=order_id)}"
-        return self._make_request(GET, url)
-
-    def patch_curve_order(self, order_id: str, patch_data: dict[str, typing.Any]) -> dict[str, typing.Any]:
-        """Patch a curve order.
-
-        Args:
-            order_id (str): The ID of the order.
-            patch_data (dict[str, Any]): The patch data for the curve order.
-
-        Returns:
-            dict[str, Any]: Updated curve order response.
-
-        Raises:
-            requests.HTTPError: If the API request fails with a non-200 status code.
-        """
-        url = f"{self.base_url}{ENDPOINTS['curve_order'].format(version=self.version, orderId=order_id)}"
-        return self._make_request(PATCH, url, json=patch_data)
-
-    def get_prices(self, auction_id: str) -> dict[str, typing.Any]:
-        """
-        Get prices for a specific auction, user has access to.
-        🚩 Prices are only available for seven days in the past.
-
-        Args:
-            auction_id (str): The ID of the auction.
-
-        Returns:
-            dict[str, Any]: Auction price object.
+            A tuple containing the HTTP status code and either an AuctionPrice object or a ProblemDetails object if an
+            error occurs.
 
         Raises:
             requests.HTTPError: If the API request fails with a non-200 status code.
@@ -333,56 +264,22 @@ class AuctionAPI:
         url = f"{self.base_url}{ENDPOINTS['prices'].format(version=self.version, auctionId=auction_id)}"
         return self._make_request(GET, url)
 
-    def get_inspection_result_for_order(self, external_auction_id: str, order_id: str) -> dict[str, typing.Any]:
-        """Get inspection result for an order.
-
-        Args:
-            external_auction_id (str): The external ID of the auction.
-            order_id (str): The ID of the order.
-
-        Returns:
-            dict[str, Any]: Reasonability results info.
-
-        Raises:
-            requests.HTTPError: If the API request fails with a non-200 status code.
-        """
-        url = self.base_url + ENDPOINTS["inspection_result"].format(
-            version=self.version,
-            externalAuctionId=external_auction_id,
-            orderId=order_id,
-        )
-        return self._make_request(GET, url)
-
-    def get_state(self) -> None:
-        """Get the state of the API.
-
-        Returns:
-            None: No content is returned, only status is checked.
-
-        Raises:
-            requests.HTTPError: If the API request fails with a non-200 status code.
-        """
-        url = f"{self.base_url}{ENDPOINTS['state']}"
-        headers = {"Authorization": f"Bearer {self.token}"}
-        response = requests.get(url, headers=headers, timeout=TIMEOUT)
-        response.raise_for_status()
-
     def get_portfolio_volumes(
         self,
         auction_id: str,
         portfolios: list[str] | None = None,
         area_codes: list[str] | None = None,
-    ) -> dict[str, typing.Any]:
-        """Get portfolio volumes for a specific auction, limited by portfolios and areas the user has access to.
-        Selection can be filtered by specifying portfolios and areas in the search parameters.
+    ) -> tuple[int, PortfolioVolumeResponse | ProblemDetails]:
+        """Retrieve portfolio volumes for a specific auction, filtered by portfolios and area codes.
 
         Args:
-            auction_id (str): The ID of the auction.
-            portfolios (list[str] | None): List of portfolios to filter.
-            area_codes (list[str] | None): List of area codes to filter.
+            auction_id: The ID of the auction (e.g., "CWE_H_DA_1-20250519").
+            portfolios: List of portfolio IDs to filter the volumes. Defaults to None.
+            area_codes: List of area codes (e.g., "FR") to filter the volumes. Defaults to None.
 
         Returns:
-            dict[str, Any]: Portfolio volume response.
+            A tuple containing the HTTP status code and either a PortfolioVolumeResponse object or a ProblemDetails
+            object if an error occurs.
 
         Raises:
             requests.HTTPError: If the API request fails with a non-200 status code.
@@ -394,3 +291,168 @@ class AuctionAPI:
         if area_codes:
             params["areaCodes"] = area_codes
         return self._make_request(GET, url, params=params)
+
+    def get_auction_detail(self, auction_id: str) -> tuple[int, AuctionMultiResolutionResponse | ProblemDetails]:
+        """Retrieve detailed information for a specific auction.
+
+        Args:
+            auction_id: The ID of the auction (e.g., "CWE_H_DA_1-20250519").
+
+        Returns:
+            A tuple containing the HTTP status code and either an AuctionMultiResolutionResponse object or a
+            ProblemDetails object if an error occurs.
+
+        Raises:
+            requests.HTTPError: If the API request fails with a non-200 status code.
+        """
+        url = f"{self.base_url}{ENDPOINTS['auction'].format(version=self.version, auctionId=auction_id)}"
+        return self._make_request(GET, url)
+
+    # Block Order
+    def get_block_order(self, order_id: str) -> tuple[int, BlockListResponse | ProblemDetails]:
+        """Retrieve a block order by its order ID.
+
+        Args:
+            order_id: The ID of the block order.
+
+        Returns:
+            A tuple containing the HTTP status code and either a BlockListResponse object or a ProblemDetails object if
+            an error occurs.
+
+        Raises:
+            requests.HTTPError: If the API request fails with a non-200 status code.
+        """
+        url = f"{self.base_url}{ENDPOINTS['block_order'].format(version=self.version, orderId=order_id)}"
+        return self._make_request(GET, url)
+
+    def patch_block_order(
+        self,
+        order_id: str,
+        patch_data: BlockOrderPatch,
+    ) -> tuple[int, BlockListResponse | ProblemDetails]:
+        """Update an existing block order with the provided patch data.
+
+        Args:
+            order_id: The ID of the block order to update.
+            patch_data: The patch data to apply to the block order.
+
+        Returns:
+            A tuple containing the HTTP status code and either a BlockListResponse object or a ProblemDetails object if
+            an error occurs.
+
+        Raises:
+            requests.HTTPError: If the API request fails with a non-200 status code.
+        """
+        url = f"{self.base_url}{ENDPOINTS['block_order'].format(version=self.version, orderId=order_id)}"
+        return self._make_request(PATCH, url, json=patch_data)
+
+    def post_block_order(self, block_list: BlockList) -> tuple[int, BlockListResponse | ProblemDetails]:
+        """Create a new block order.
+
+        Args:
+            block_list: The block order data to create.
+
+        Returns:
+            A tuple containing the HTTP status code and either a BlockListResponse object or a ProblemDetails object if
+            an error occurs.
+
+        Raises:
+            requests.HTTPError: If the API request fails with a non-200 status code.
+        """
+        url = f"{self.base_url}{ENDPOINTS['block_orders'].format(version=self.version)}"
+        return self._make_request(POST, url, json=block_list)
+
+    # Curve Order
+    def get_curve_order(self, order_id: str) -> tuple[int, CurveOrderResponse | ProblemDetails]:
+        """Retrieve a curve order by its order ID.
+
+        Args:
+            order_id: The ID of the curve order.
+
+        Returns:
+            A tuple containing the HTTP status code and either a CurveOrderResponse object or a ProblemDetails object if
+            an error occurs.
+
+        Raises:
+            requests.HTTPError: If the API request fails with a non-200 status code.
+        """
+        url = f"{self.base_url}{ENDPOINTS['curve_order'].format(version=self.version, orderId=order_id)}"
+        return self._make_request(GET, url)
+
+    def patch_curve_order(
+        self,
+        order_id: str,
+        patch_data: CurveOrderPatch,
+    ) -> tuple[int, CurveOrderResponse | ProblemDetails]:
+        """Update an existing curve order with the provided patch data.
+
+        Args:
+            order_id: The ID of the curve order to update.
+            patch_data: The patch data to apply to the curve order.
+
+        Returns:
+            A tuple containing the HTTP status code and either a CurveOrderResponse object or a ProblemDetails object if
+            an error occurs.
+
+        Raises:
+            requests.HTTPError: If the API request fails with a non-200 status code.
+        """
+        url = f"{self.base_url}{ENDPOINTS['curve_order'].format(version=self.version, orderId=order_id)}"
+        return self._make_request(PATCH, url, json=patch_data)
+
+    def post_curve_order(self, curve_order: CurveOrder) -> tuple[int, CurveOrderResponse | ProblemDetails]:
+        """Create a new curve order.
+
+        Args:
+            curve_order: The curve order data to create.
+
+        Returns:
+            A tuple containing the HTTP status code and either a CurveOrderResponse object or a ProblemDetails object if
+            an error occurs.
+
+        Raises:
+            requests.HTTPError: If the API request fails with a non-200 status code.
+        """
+        url = f"{self.base_url}{ENDPOINTS['curve_orders'].format(version=self.version)}"
+        return self._make_request(POST, url, json=curve_order)
+
+    # Reasonability
+    def get_reasonability_result_for_order(
+        self,
+        external_auction_id: str,
+        order_id: str,
+    ) -> tuple[int, ReasonabilityResultsInfo | ProblemDetails]:
+        """Retrieve reasonability results for a specific order in an auction.
+
+        Args:
+            external_auction_id: The external ID of the auction (e.g., "CWE_H_DA_1-20250519").
+            order_id: The ID of the order.
+
+        Returns:
+            A tuple containing the HTTP status code and either a ReasonabilityResultsInfo object or a ProblemDetails
+            object if an error occurs.
+
+        Raises:
+            requests.HTTPError: If the API request fails with a non-200 status code.
+        """
+        url = self.base_url + ENDPOINTS["reasonability_result"].format(
+            version=self.version,
+            externalAuctionId=external_auction_id,
+            orderId=order_id,
+        )
+        return self._make_request(GET, url)
+
+    # State
+    def get_state(self) -> tuple[int, dict | ProblemDetails]:
+        """Check the operational state of the Nordpool API.
+
+        Returns:
+            None: No content is returned; only the status is checked.
+
+        Raises:
+            requests.HTTPError: If the API request fails with a non-200 status code.
+        """
+        url = f"{self.base_url}{ENDPOINTS['state']}"
+        headers = {"Authorization": f"Bearer {self.token}"}
+        response = requests.get(url, headers=headers, timeout=TIMEOUT)
+        response.raise_for_status()
