@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from datetime import timedelta
 
+from app.nomination.utils import tomorrow_str_no_dash
+
 
 @dataclass
 class OrderHeader:
@@ -11,6 +13,10 @@ class OrderHeader:
     area_code: str = "FR"
     portfolio: str | None = "FR-SUNFLOW"
     comment: str | None = None
+
+    @property
+    def auction_id(self) -> str:
+        return f"{self.product_id}-{tomorrow_str_no_dash()}"
 
 
 def streem_to_nordpool(
