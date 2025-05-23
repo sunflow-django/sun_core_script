@@ -16,7 +16,9 @@ def get_tomorrow_boundaries() -> tuple[datetime, datetime]:
 
 def get_tomorrow_iso() -> str:
     """
-    Returns tomorrow start of day as an ISO string, in Paris time.
+    Returns tomorrow start of day as an ISO string, in Paris time
+
+    Example: "2025-05-24T00:00:00+02:00"
     """
     tomorrow = datetime.now(tz=PARIS_TZ) + timedelta(days=1)
     tomorrow_start = tomorrow.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -26,6 +28,8 @@ def get_tomorrow_iso() -> str:
 def get_tomorrow_str() -> str:
     """
     Returns tomorrow's date as 'YYYY-MM-DD' string, in Paris time.
+
+    Example: "2025-05-24"
     """
     tomorrow = datetime.now(tz=PARIS_TZ) + timedelta(days=1)
     return tomorrow.strftime("%Y-%m-%d")
