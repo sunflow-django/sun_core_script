@@ -4,6 +4,7 @@ from typing import Annotated
 from uuid import UUID
 
 from pydantic import BaseModel
+from pydantic import ConfigDict
 from pydantic import Field
 
 
@@ -28,17 +29,23 @@ class AuctionStateType(str, Enum):
 
 
 class BlockPeriod(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     contract_id: Annotated[str, Field(alias="contractId", min_length=1)]
     volume: float
 
 
 class Contract(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     id: str | None = None
     delivery_start: Annotated[datetime | None, Field(alias="deliveryStart")] = None
     delivery_end: Annotated[datetime | None, Field(alias="deliveryEnd")] = None
 
 
 class ContractNetVolume(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     net_volume: Annotated[float | None, Field(alias="netVolume")] = None
     contract_id: Annotated[str | None, Field(alias="contractId")] = None
     delivery_start: Annotated[datetime | None, Field(alias="deliveryStart")] = None
@@ -46,23 +53,31 @@ class ContractNetVolume(BaseModel, extra="forbid"):
 
 
 class Currency(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     currency_code: Annotated[str | None, Field(alias="currencyCode")] = None
     min_price: Annotated[float | None, Field(alias="minPrice")] = None
     max_price: Annotated[float | None, Field(alias="maxPrice")] = None
 
 
 class CurrencyPrice(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     currency_code: Annotated[str | None, Field(alias="currencyCode")] = None
     market_price: Annotated[float | None, Field(alias="marketPrice")] = None
     status: AuctionResultState | None = None
 
 
 class CurvePoint(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     price: float
     volume: float
 
 
 class Order(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     auction_id: Annotated[str, Field(alias="auctionId", min_length=1)]
     portfolio: Annotated[str, Field(min_length=1)]
     area_code: Annotated[str, Field(alias="areaCode", min_length=1)]
@@ -76,6 +91,8 @@ class OrderApprovalState(str, Enum):
 
 
 class OrderResponse(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     order_id: Annotated[UUID | None, Field(alias="orderId")] = None
     auction_id: Annotated[str | None, Field(alias="auctionId")] = None
     company_name: Annotated[str | None, Field(alias="companyName")] = None
@@ -104,11 +121,15 @@ class OrderStateType(str, Enum):
 
 
 class OrderType(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     id: int | None = None
     name: str | None = None
 
 
 class PortfolioArea(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     code: str | None = None
     name: str | None = None
     eic_code: Annotated[str | None, Field(alias="eicCode")] = None
@@ -118,6 +139,8 @@ class PortfolioArea(BaseModel, extra="forbid"):
 
 
 class ProblemDetails(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     type: str | None = None
     title: str | None = None
     status: int | None = None
@@ -131,6 +154,8 @@ class TradeSide(str, Enum):
 
 
 class ValidatedCurve(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     id: UUID | None = None
     time_step: Annotated[int | None, Field(alias="timeStep")] = None
     contract_id: Annotated[str | None, Field(alias="contractId")] = None
@@ -139,21 +164,29 @@ class ValidatedCurve(BaseModel, extra="forbid"):
 
 
 class AreaContractGroup(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     area_code: Annotated[str | None, Field(alias="areaCode")] = None
     contracts: list[Contract] | None = None
 
 
 class AreaNetVolume(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     area_code: Annotated[str | None, Field(alias="areaCode")] = None
     net_volumes: Annotated[list[ContractNetVolume] | None, Field(alias="netVolumes")] = None
 
 
 class AreaPrice(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     area_code: Annotated[str | None, Field(alias="areaCode")] = None
     prices: list[CurrencyPrice] | None = None
 
 
 class AuctionPortfolio(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     name: str | None = None
     id: str | None = None
     currency: str | None = None
@@ -164,6 +197,8 @@ class AuctionPortfolio(BaseModel, extra="forbid"):
 
 
 class AuctionResponse(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     id: str | None = None
     name: str | None = None
     state: AuctionStateType | None = None
@@ -177,6 +212,8 @@ class AuctionResponse(BaseModel, extra="forbid"):
 
 
 class Block(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     name: Annotated[str, Field(min_length=1)]
     price: float
     minimum_acceptance_ratio: Annotated[float, Field(alias="minimumAcceptanceRatio")]
@@ -187,11 +224,15 @@ class Block(BaseModel, extra="forbid"):
 
 
 class BlockResponse(Block, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     modifier: str | None = None
     state: OrderStateType | None = None
 
 
 class ContractPrice(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     contract_id: Annotated[str | None, Field(alias="contractId")] = None
     delivery_start: Annotated[datetime | None, Field(alias="deliveryStart")] = None
     delivery_end: Annotated[datetime | None, Field(alias="deliveryEnd")] = None
@@ -199,36 +240,50 @@ class ContractPrice(BaseModel, extra="forbid"):
 
 
 class Curve(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     contract_id: Annotated[str, Field(alias="contractId", min_length=1)]
     curve_points: Annotated[list[CurvePoint], Field(alias="curvePoints")]
 
 
 class CurveOrder(Order, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     curves: list[Curve]
 
 
 class CurveOrderPatch(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     curves: list[Curve] | None = None
     comment: Annotated[str | None, Field(max_length=255, min_length=0)] = None
 
 
 class CurveOrderResponse(OrderResponse, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     state: OrderStateType | None = None
     curves: list[Curve] | None = None
 
 
 class PortfolioNetVolume(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     portfolio: str | None = None
     company_name: Annotated[str | None, Field(alias="companyName")] = None
     area_net_volumes: Annotated[list[AreaNetVolume] | None, Field(alias="areaNetVolumes")] = None
 
 
 class PortfolioVolumeResponse(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     auction_id: Annotated[str | None, Field(alias="auctionId")] = None
     portfolio_net_volumes: Annotated[list[PortfolioNetVolume] | None, Field(alias="portfolioNetVolumes")] = None
 
 
 class ReasonabilityResultsInfo(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     portfolio: str | None = None
     area: str | None = None
     order_approval_state: Annotated[OrderApprovalState | None, Field(alias="orderApprovalState")] = None
@@ -241,6 +296,8 @@ class ReasonabilityResultsInfo(BaseModel, extra="forbid"):
 
 
 class Trade(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     trade_id: Annotated[str | None, Field(alias="tradeId")] = None
     contract_id: Annotated[str | None, Field(alias="contractId")] = None
     delivery_start: Annotated[datetime | None, Field(alias="deliveryStart")] = None
@@ -252,6 +309,8 @@ class Trade(BaseModel, extra="forbid"):
 
 
 class AuctionMultiResolutionResponse(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     id: str | None = None
     name: str | None = None
     state: AuctionStateType | None = None
@@ -265,6 +324,8 @@ class AuctionMultiResolutionResponse(BaseModel, extra="forbid"):
 
 
 class AuctionPrice(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     auction: str | None = None
     auction_delivery_start: Annotated[datetime | None, Field(alias="auctionDeliveryStart")] = None
     auction_delivery_end: Annotated[datetime | None, Field(alias="auctionDeliveryEnd")] = None
@@ -272,24 +333,34 @@ class AuctionPrice(BaseModel, extra="forbid"):
 
 
 class BlockList(Order, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     blocks: list[Block | BlockResponse] | None = None
 
 
 class BlockListResponse(OrderResponse, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     blocks: list[BlockResponse] | None = None
 
 
 class BlockOrderPatch(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     blocks: list[Block | BlockResponse] | None = None
     comment: Annotated[str | None, Field(max_length=255, min_length=0)] = None
 
 
 class CombinedOrdersResponse(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     curve_orders: Annotated[list[CurveOrderResponse] | None, Field(alias="curveOrders")] = None
     block_lists: Annotated[list[BlockListResponse] | None, Field(alias="blockLists")] = None
 
 
 class OrderResultResponse(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     order_id: Annotated[str | None, Field(alias="orderId")] = None
     order_type: Annotated[OrderResultType | None, Field(alias="orderType")] = None
     auction_id: Annotated[str | None, Field(alias="auctionId")] = None
@@ -302,6 +373,8 @@ class OrderResultResponse(BaseModel, extra="forbid"):
 
 
 class BlockResultResponse(OrderResultResponse, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
     name: str | None = None
     exclusive_group: Annotated[str | None, Field(alias="exclusiveGroup")] = None
     linked_to: Annotated[str | None, Field(alias="linkedTo")] = None
