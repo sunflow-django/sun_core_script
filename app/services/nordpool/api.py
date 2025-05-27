@@ -10,6 +10,12 @@ from pydantic import BaseModel
 from pydantic import ValidationError
 from pydantic import field_validator
 
+from app.services.nordpool.constants import BASE_URL_PROD
+from app.services.nordpool.constants import BASE_URL_TEST
+from app.services.nordpool.constants import ENDPOINTS
+from app.services.nordpool.constants import TIMEOUT
+from app.services.nordpool.constants import TOKEN_URL_PROD
+from app.services.nordpool.constants import TOKEN_URL_TEST
 from app.services.nordpool.schema import AuctionMultiResolutionResponse
 from app.services.nordpool.schema import AuctionPrice
 from app.services.nordpool.schema import AuctionResponse
@@ -34,32 +40,7 @@ from app.services.nordpool.schema import ReasonabilityResultsInfo
 # - Contract:  A trading hour for an auction (no area code). Ex: "CWE_H_DA_1-20250520-01"
 
 # Urls
-BASE_URL_TEST = "https://auctions-api.test.nordpoolgroup.com"
-TOKEN_URL_TEST = "https://sts.test.nordpoolgroup.com/connect/token"
 
-BASE_URL_PROD = "https://auctions-api.nordpoolgroup.com"
-TOKEN_URL_PROD = "https://sts.nordpoolgroup.com/connect/token"
-
-ENDPOINTS = {
-    "auctions": "/api/v{version}/auctions",
-    "orders": "/api/v{version}/auctions/{auctionId}/orders",
-    "trades": "/api/v{version}/auctions/{auctionId}/trades",
-    "prices": "/api/v{version}/auctions/{auctionId}/prices",
-    "portfolio_volumes": "/api/v{version}/auctions/{auctionId}/portfoliovolumes",
-    "auction": "/api/v{version}/auctions/{auctionId}",
-    "block_order": "/api/v{version}/blockorders/{orderId}",
-    "block_orders": "/api/v{version}/blockorders",
-    "curve_order": "/api/v{version}/curveorders/{orderId}",
-    "curve_orders": "/api/v{version}/curveorders",
-    "reasonability_result": "/api/v{version}/auctions/{externalAuctionId}/orders/{orderId}/results",
-    "state": "/api/state",
-}
-
-# Constants
-TIMEOUT = 3  # seconds
-GET = "GET"
-POST = "POST"
-PATCH = "PATCH"
 
 # For client ID / client secret / client authorization string
 # Refer to https://developers.nordpoolgroup.com/reference/clients-and-scopes and
@@ -286,7 +267,7 @@ class AuctionAPI:
             params["closeBiddingTo"] = close_bidding_to
 
         # Request
-        code, result = self._make_request(GET, url, params=params)
+        code, result = self._make_request("GET", url, params=params)
 
         # Output validation
         if code != HTTPStatus.OK:
@@ -336,7 +317,7 @@ class AuctionAPI:
             params["areaCodes"] = area_codes
 
         # Request
-        code, result = self._make_request(GET, url, params=params)
+        code, result = self._make_request("GET", url, params=params)
 
         # Output validation
         if code != HTTPStatus.OK:
@@ -386,7 +367,7 @@ class AuctionAPI:
             params["areaCodes"] = area_codes
 
         # Request
-        code, result = self._make_request(GET, url, params=params)
+        code, result = self._make_request("GET", url, params=params)
 
         # Output validation
         if code != HTTPStatus.OK:
@@ -427,7 +408,7 @@ class AuctionAPI:
         url = f"{self.base_url}{ENDPOINTS['prices'].format(version=self.version, auctionId=auction_id)}"
 
         # Request
-        code, result = self._make_request(GET, url)
+        code, result = self._make_request("GET", url)
 
         # Output validation
         if code != HTTPStatus.OK:
@@ -477,7 +458,7 @@ class AuctionAPI:
             params["areaCodes"] = area_codes
 
         # Request
-        code, result = self._make_request(GET, url, params=params)
+        code, result = self._make_request("GET", url, params=params)
 
         # Output validation
         if code != HTTPStatus.OK:
@@ -514,7 +495,7 @@ class AuctionAPI:
         url = f"{self.base_url}{ENDPOINTS['auction'].format(version=self.version, auctionId=auction_id)}"
 
         # Request
-        code, result = self._make_request(GET, url)
+        code, result = self._make_request("GET", url)
 
         # Output validation
         if code != HTTPStatus.OK:
@@ -552,7 +533,7 @@ class AuctionAPI:
         url = f"{self.base_url}{ENDPOINTS['block_order'].format(version=self.version, orderId=order_id)}"
 
         # Request
-        code, result = self._make_request(GET, url)
+        code, result = self._make_request("GET", url)
 
         # Output validation
         if code != HTTPStatus.OK:
@@ -591,7 +572,7 @@ class AuctionAPI:
         url = f"{self.base_url}{ENDPOINTS['block_order'].format(version=self.version, orderId=order_id)}"
 
         # Request
-        code, result = self._make_request(PATCH, url, json=patch_data.model_dump(by_alias=True))
+        code, result = self._make_request("PATCH", url, json=patch_data.model_dump(by_alias=True))
 
         # Output validation
         if code != HTTPStatus.OK:
@@ -628,7 +609,7 @@ class AuctionAPI:
         url = f"{self.base_url}{ENDPOINTS['block_orders'].format(version=self.version)}"
 
         # Request
-        code, result = self._make_request(POST, url, json=block_list.model_dump(by_alias=True))
+        code, result = self._make_request("POST", url, json=block_list.model_dump(by_alias=True))
 
         # Output validation
         if code != HTTPStatus.CREATED:
@@ -666,7 +647,7 @@ class AuctionAPI:
         url = f"{self.base_url}{ENDPOINTS['curve_order'].format(version=self.version, orderId=order_id)}"
 
         # Request
-        code, result = self._make_request(GET, url)
+        code, result = self._make_request("GET", url)
 
         # Output validation
         if code != HTTPStatus.OK:
@@ -705,7 +686,7 @@ class AuctionAPI:
         url = f"{self.base_url}{ENDPOINTS['curve_order'].format(version=self.version, orderId=order_id)}"
 
         # Request
-        code, result = self._make_request(PATCH, url, json=patch_data.model_dump(by_alias=True))
+        code, result = self._make_request("PATCH", url, json=patch_data.model_dump(by_alias=True))
 
         # Output validation
         if code != HTTPStatus.OK:
@@ -742,7 +723,7 @@ class AuctionAPI:
         url = f"{self.base_url}{ENDPOINTS['curve_orders'].format(version=self.version)}"
 
         # Request
-        code, result = self._make_request(POST, url, json=curve_order.model_dump(by_alias=True))
+        code, result = self._make_request("POST", url, json=curve_order.model_dump(by_alias=True))
 
         # Output validation
         if code != HTTPStatus.CREATED:
@@ -788,7 +769,7 @@ class AuctionAPI:
         )
 
         # Request
-        code, result = self._make_request(GET, url)
+        code, result = self._make_request("GET", url)
 
         # Output validation
         if code != HTTPStatus.OK:
@@ -802,11 +783,11 @@ class AuctionAPI:
         return rri
 
     # State
-    def get_state(self) -> dict | None:
+    def get_state(self) -> bool:
         """Check the operational state of the Nordpool API.
 
         Returns:
-            dict | None: A dictionary containing the API state, or None if an error occurs.
+            True if HTTPStatus.OK. False otherwise
         """
         # Input validation
         # No inputs to validate for this method
@@ -815,17 +796,17 @@ class AuctionAPI:
         url = f"{self.base_url}{ENDPOINTS['state']}"
 
         # Request
-        code, result = self._make_request(GET, url)
+        code, result = self._make_request("GET", url)
 
         # Output validation
         if code != HTTPStatus.OK:
             self.log_http_error(code, result)
-            return None
+            return False
         try:
-            return result
+            return True
         except ValidationError:
             logger.exception(f"Not a valid state response: {result}")
-            return None
+            return False
 
     @staticmethod
     def log_http_error(code: int, problem_details: ProblemDetails) -> None:
@@ -835,6 +816,6 @@ class AuctionAPI:
             code: The HTTP status code of the error.
             problem_details: The ProblemDetails object with details on error.
         """
-        detail: str | None = problem_details.get("detail", None)
+        detail: str | None = getattr(problem_details, "detail", None)
         msg = f"Failed request. Code: {code} Detail: {detail}."
         logger.error(msg)

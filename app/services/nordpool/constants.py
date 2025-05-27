@@ -1,7 +1,45 @@
+import base64
+from collections.abc import Iterator
+from copy import deepcopy
 from dataclasses import dataclass
 
 
-@dataclass
+# Urls
+BASE_URL_TEST = "https://auctions-api.test.nordpoolgroup.com"
+TOKEN_URL_TEST = "https://sts.test.nordpoolgroup.com/connect/token"
+
+BASE_URL_PROD = "https://auctions-api.nordpoolgroup.com"
+TOKEN_URL_PROD = "https://sts.nordpoolgroup.com/connect/token"
+
+# End points
+ENDPOINTS = {
+    "auctions": "/api/v{version}/auctions",
+    "orders": "/api/v{version}/auctions/{auctionId}/orders",
+    "trades": "/api/v{version}/auctions/{auctionId}/trades",
+    "prices": "/api/v{version}/auctions/{auctionId}/prices",
+    "portfolio_volumes": "/api/v{version}/auctions/{auctionId}/portfoliovolumes",
+    "auction": "/api/v{version}/auctions/{auctionId}",
+    "block_order": "/api/v{version}/blockorders/{orderId}",
+    "block_orders": "/api/v{version}/blockorders",
+    "curve_order": "/api/v{version}/curveorders/{orderId}",
+    "curve_orders": "/api/v{version}/curveorders",
+    "reasonability_result": "/api/v{version}/auctions/{externalAuctionId}/orders/{orderId}/results",
+    "state": "/api/state",
+}
+
+# Request
+TIMEOUT = 3  # seconds
+
+# Nordpool constants
+# Refer to https://developers.nordpoolgroup.com/reference/clients-and-scopes
+# Refer to https://developers.nordpoolgroup.com/reference/auth-introduction#section-request-header
+AUCTION_API = "auction_api"
+CLIENT_AUCTION_API = "client_auction_api"
+CLIENT_AUTHORISATION_STRING = base64.b64encode(f"{CLIENT_AUCTION_API}:{CLIENT_AUCTION_API}".encode()).decode()
+PRODUCT_ID = "CORE_IDA_1"
+
+
+@dataclass(frozen=True)
 class Area:
     name: str
     code: str
@@ -43,8 +81,8 @@ class Areas:
         return self._areas.get(key)
 
     def all_areas(self) -> dict[str, Area]:
-        """Return all areas as a dictionary."""
-        return self._areas
+        """Return a copy of all areas as a dictionary."""
+        return deepcopy(self._areas)
 
     def __getitem__(self, key: str) -> Area:
         """Allow dictionary-like access to areas."""
@@ -54,5 +92,6 @@ class Areas:
             raise KeyError(msg)
         return area
 
-
-PRODUCT_ID = "CORE_IDA_1"
+    def __iter__(self) -> Iterator[str]:
+        """Make Areas iterable by yielding keys of the _areas dictionary."""
+        return iter(self._areas)
