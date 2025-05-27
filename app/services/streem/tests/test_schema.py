@@ -5,12 +5,12 @@ from pydantic import ValidationError
 
 from app.constants.time_zones import PARIS_TZ
 from app.services.streem.schema import Alert
-from app.services.streem.schema import Alerts
+from app.services.streem.schema import AlertList
 from app.services.streem.schema import AuthToken
 from app.services.streem.schema import EnergyType
 from app.services.streem.schema import ForecastType
 from app.services.streem.schema import Installation
-from app.services.streem.schema import Installations
+from app.services.streem.schema import InstallationList
 from app.services.streem.schema import LoadCurve
 from app.services.streem.schema import LoadCurvePoint
 from app.services.streem.schema import Resolution
@@ -118,14 +118,14 @@ class TestInstallations:
     """Tests for Installations class"""
 
     def test_empty_installations(self) -> None:
-        installations = Installations()
+        installations = InstallationList()
         assert isinstance(installations.root, list)
         assert len(installations.root) == 0
         assert list(installations.client_ids()) == []
         assert list(installations.names()) == []
 
     def test_multiple_installations(self) -> None:
-        installations = Installations(
+        installations = InstallationList(
             root=[
                 Installation(name="Plant1", client_id="client1"),
                 Installation(name="Plant2", client_id="client2"),
@@ -165,13 +165,13 @@ class TestAlerts:
     """Tests for Alerts class"""
 
     def test_empty_alerts(self) -> None:
-        alerts = Alerts()
+        alerts = AlertList()
         assert isinstance(alerts.root, list)
         assert len(alerts.root) == 0
         assert list(alerts.installation_names()) == []
 
     def test_multiple_alerts(self) -> None:
-        alerts = Alerts(
+        alerts = AlertList(
             root=[Alert(type="warning", installation_name="Plant1"), Alert(type="error", installation_name="Plant2")],
         )
         assert len(alerts.root) == EXPECTED_ALERTS_COUNT

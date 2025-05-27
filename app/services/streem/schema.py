@@ -29,6 +29,7 @@ class Resolution(str, Enum):
     D1 = "1d"
     M1 = "1M"
 
+
 class EnergyType(str, Enum):
     """Enum for installation energy types."""
 
@@ -57,7 +58,7 @@ class Installation(BaseModel, extra="forbid"):
     name: Annotated[str, Field(description="Name of the installation")]
 
 
-class Installations(RootModel):
+class InstallationList(RootModel):
     """Schema for a list of installations."""
 
     root: list[Installation] = Field(default_factory=list)
@@ -88,7 +89,7 @@ class Alert(BaseModel, extra="forbid"):
     closed_at: Annotated[datetime | None, Field(description="Potential close date")] = None
 
 
-class Alerts(RootModel):
+class AlertList(RootModel):
     """Schema for a list of alerts."""
 
     root: list[Alert] = Field(default_factory=list)
