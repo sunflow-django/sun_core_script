@@ -1,6 +1,7 @@
 from collections.abc import Iterator
 from datetime import datetime
 from enum import Enum
+from typing import Annotated
 
 from pydantic import BaseModel
 from pydantic import ConfigDict
@@ -9,6 +10,24 @@ from pydantic import RootModel
 
 from app.constants.time_zones import PARIS_TZ
 
+
+class ForecastType(str, Enum):
+    """Enum for forecast types."""
+
+    GENERATION = "Generation"
+    DISPATCH_PROGRAM = "Dispatch_Program"
+
+
+class Resolution(str, Enum):
+    """Enum for time resolutions."""
+
+    M5 = "5m"
+    M10 = "10m"
+    M15 = "15m"
+    M30 = "30m"
+    H1 = "1h"
+    D1 = "1d"
+    M1 = "1M"
 
 class EnergyType(str, Enum):
     """Enum for installation energy types."""
@@ -19,127 +38,75 @@ class EnergyType(str, Enum):
     OTHER = "other"
 
 
+class AuthToken(BaseModel, extra="forbid"):
+    model_config = ConfigDict(populate_by_name=True)
+
+    auth_token: Annotated[str, Field(description="API token")]
+
+
 class Installation(BaseModel, extra="forbid"):
-    """Schema for installation data.
+    """Schema for one installation."""
 
-    Attributes:
-        client_id: Client reference, optional.
-        energy: Type of the installation (solar, wind, hydro, other).
-        external_ref: Client reference, optional.
-        latitude: Latitude in degrees, optional.
-        longitude: Longitude in degrees, optional.
-        name: Name of the installation.
+    model_config = ConfigDict(populate_by_name=True)
 
-    Returns:
-        Installation: The validated installation instance.
-    """
-
-    client_id: str | None = None
-    energy: EnergyType = Field(default=EnergyType.OTHER)
-    external_ref: str | None = None
-    latitude: float | None = None
-    longitude: float | None = None
-    name: str
+    client_id: Annotated[str | None, Field(description="Client reference")] = None
+    energy: Annotated[EnergyType, Field(description="Type of the installation")] = EnergyType.OTHER
+    external_ref: Annotated[str | None, Field(description="Client reference")] = None
+    latitude: Annotated[float | None, Field(description="Latitude (in degrees)")] = None
+    longitude: Annotated[float | None, Field(description="Longitude (in degrees)")] = None
+    name: Annotated[str, Field(description="Name of the installation")]
 
 
 class Installations(RootModel):
-    """Schema for a list of installations.
-
-    Attributes:
-        root: List of installation objects.
-
-    Returns:
-        Installations: The validated installations instance.
-    """
+    """Schema for a list of installations."""
 
     root: list[Installation] = Field(default_factory=list)
 
     def client_ids(self) -> Iterator[str]:
-        """Yield client IDs from the installations.
-
-        Yields:
-            str: A client ID, excluding None values.
-        """
+        """Yield the client ID of each installation."""
         for client in self.root:
             if client.client_id is not None:
                 yield client.client_id
 
     def names(self) -> Iterator[str]:
-        """Yield names from the installations.
-
-        Yields:
-            str: An installation name.
-        """
+        """Yield the name of each installation."""
         for client in self.root:
             yield client.name
 
 
 class Alert(BaseModel, extra="forbid"):
-    """Schema for alert data.
-
-    Attributes:
-        type: Alarm type.
-        installation_name: Name of the installation.
-        created_at: Date of creation.
-        closed_at: Potential close date, optional.
-
-    Returns:
-        Alert: The validated alert instance.
-    """
+    """Schema for a single alert data."""
 
     model_config = ConfigDict(coerce_numbers_to_str=True)
 
-    type: str
-    installation_name: str
-    created_at: datetime = Field(default_factory=lambda: datetime.now(tz=PARIS_TZ))
-    closed_at: datetime | None = None
+    type: Annotated[str, Field(description="Alarm type")]
+    installation_name: Annotated[str, Field(description="Name of the installation")]
+    created_at: Annotated[
+        datetime,
+        Field(default_factory=lambda: datetime.now(tz=PARIS_TZ), description="Date of creation"),
+    ]
+    closed_at: Annotated[datetime | None, Field(description="Potential close date")] = None
 
 
 class Alerts(RootModel):
-    """Schema for a list of alerts.
-
-    Attributes:
-        root: List of alert objects.
-
-    Returns:
-        Alerts: The validated alerts instance.
-    """
+    """Schema for a list of alerts."""
 
     root: list[Alert] = Field(default_factory=list)
 
     def installation_names(self) -> Iterator[str]:
-        """Yield installation names from the alerts.
-
-        Yields:
-            str: An installation name.
-        """
+        """Yield the name of each installation."""
         for alert in self.root:
             yield alert.installation_name
 
 
 class LoadCurvePoint(BaseModel, extra="forbid"):
-    """Schema for a single load curve point.
+    """Schema for a single load curve point."""
 
-    Attributes:
-        data: Time series value.
-        date: Date and time of the data point.
-
-    Returns:
-        LoadCurvePoint: The validated load curve point instance.
-    """
-
-    data: float
-    date: datetime = Field(default_factory=lambda: datetime.now(tz=PARIS_TZ))
+    data: Annotated[float | None, Field(description="Time series value")] = None
+    date: Annotated[datetime, Field(default_factory=lambda: datetime.now(tz=PARIS_TZ), description="Date time")]
 
 
 class LoadCurve(BaseModel, extra="forbid"):
-    """Schema for load curve data.
-
-    Attributes:
-        points: List of load curve points.
-
-    Returns:
-        LoadCurve: The validated load curve instance.
-    """
+    """Schema for load curve data."""
 
     points: list[LoadCurvePoint] = Field(default_factory=list, alias="points")
