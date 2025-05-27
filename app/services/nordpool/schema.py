@@ -1,3 +1,5 @@
+from collections import defaultdict
+from copy import deepcopy
 from datetime import datetime
 from enum import Enum
 from typing import Annotated
@@ -109,6 +111,11 @@ class OrderResultType(str, Enum):
     CURVE = "Curve"
     BLOCK = "Block"
     ROUNDING_RESIDUAL = "RoundingResidual"
+
+
+class OrderFormat(str, Enum):
+    CURVE = "Curve"
+    BLOCK = "Block"
 
 
 class OrderStateType(str, Enum):
@@ -251,6 +258,18 @@ class CurveOrder(Order, extra="forbid"):
 
     curves: list[Curve]
 
+    def to_patch(self) -> "CurveOrderPatch":
+        """
+        Convert self to a CurveOrderPatch.
+
+        Args:
+            curve_order: CurveOrder object to convert
+
+        Returns:
+            CurveOrderPatch with the same curves and comment as the input CurveOrder
+        """
+        return CurveOrderPatch(curves=self.curves, comment=self.comment)
+
 
 class CurveOrderPatch(BaseModel, extra="forbid"):
     model_config = ConfigDict(populate_by_name=True)
@@ -258,12 +277,51 @@ class CurveOrderPatch(BaseModel, extra="forbid"):
     curves: list[Curve] | None = None
     comment: Annotated[str | None, Field(max_length=255, min_length=0)] = None
 
+    def sort(self) -> None:
+        """Sort the curves list in-place by increasing contract_id."""
+        if self.curves is not None:
+            self.curves.sort(key=lambda curve: curve.contract_id)
+
+    def sorted(self) -> "CurveOrderPatch":
+        """Return a new instance with curves sorted by increasing contract_id."""
+
+        new_instance = deepcopy(self)
+        if new_instance.curves is not None:
+            new_instance.curves = sorted(new_instance.curves, key=lambda curve: curve.contract_id)
+        return new_instance
+
+    def zero_volumes(self) -> "CurveOrderPatch":
+        """Return a new instance with all volumes set to 0.0."""
+        new_instance = deepcopy(self)
+        if new_instance.curves is not None:
+            for curve in new_instance.curves:
+                for point in curve.curve_points:
+                    point.volume = 0.0
+        return new_instance
+
 
 class CurveOrderResponse(OrderResponse, extra="forbid"):
     model_config = ConfigDict(populate_by_name=True)
 
     state: OrderStateType | None = None
     curves: list[Curve] | None = None
+
+    def sort(self) -> None:
+        """Sort the curves list in-place by increasing contract_id."""
+        if self.curves is not None:
+            self.curves.sort(key=lambda curve: curve.contract_id)
+
+    def sorted(self) -> "CurveOrderResponse":
+        """Return a new instance with curves sorted by increasing contract_id."""
+
+        new_instance = deepcopy(self)
+        if new_instance.curves is not None:
+            new_instance.curves = sorted(new_instance.curves, key=lambda curve: curve.contract_id)
+        return new_instance
+
+    def to_curve_order_patch(self) -> CurveOrderPatch:
+        """Extract a CurveOrderPatch from this CurveOrderResponse."""
+        return CurveOrderPatch(curves=deepcopy(self.curves) if self.curves is not None else None, comment=self.comment)
 
 
 class PortfolioNetVolume(BaseModel, extra="forbid"):
@@ -293,6 +351,17 @@ class ReasonabilityResultsInfo(BaseModel, extra="forbid"):
     order_id: Annotated[UUID | None, Field(alias="orderId")] = None
     approval_modifier: Annotated[str | None, Field(alias="approvalModifier")] = None
     approval_source: Annotated[ApprovalSource | None, Field(alias="approvalSource")] = None
+
+    def extract_invalid_curves(self) -> list[ValidatedCurve]:
+        """
+        Return a list of curves where is_valid is False or None.
+        """
+        # Handle case where curves is None or empty
+        if not self.curves:
+            return []
+
+        # Filter curves where is_valid is not True (i.e., False or None)
+        return [curve for curve in self.curves if curve.is_valid is not True]
 
 
 class Trade(BaseModel, extra="forbid"):
@@ -356,6 +425,83 @@ class CombinedOrdersResponse(BaseModel, extra="forbid"):
 
     curve_orders: Annotated[list[CurveOrderResponse] | None, Field(alias="curveOrders")] = None
     block_lists: Annotated[list[BlockListResponse] | None, Field(alias="blockLists")] = None
+
+    def list_orders_details(self) -> list[dict[str, str]]:
+        """
+        Extract order details: order_id, auction_id, state, modified, type.
+        """
+        curve_orders = [
+            {
+                "order_id": str(order.order_id) if order.order_id else "N/A",
+                "auction_id": order.auction_id if order.auction_id else "N/A",
+                "state": order.state.value if order.state else "None",
+                "modified": order.modified.isoformat() if order.modified else "N/A",
+                "type": "Curve",
+            }
+            for order in self.curve_orders or []
+        ]
+
+        block_orders = [
+            {
+                "order_id": str(block_list.order_id) if block_list.order_id else "N/A",
+                "auction_id": block_list.auction_id if block_list.auction_id else "N/A",
+                "state": block.state.value if block.state else "None",
+                "modified": block_list.modified.isoformat() if block_list.modified else "N/A",
+                "type": "Block",
+            }
+            for block_list in self.block_lists or []
+            for block in block_list.blocks or []
+        ]
+
+        return curve_orders + block_orders
+
+    def select_curve_order_by_auction_id(self, auction_id: str) -> UUID | None:
+        """
+        Select a curve order  by auction_id.
+
+        Args:
+            auction_id: String representing the contract ID to search for
+
+        Returns:
+            UUID of the matching order_id or None if not found
+
+        Raises:
+            ValueError: If more than one CurveOrderResponse matches the auction_id
+        """
+        if self.curve_orders is None:
+            return None
+
+        matching_orders = [co for co in self.curve_orders if co.auction_id == auction_id]
+
+        if len(matching_orders) > 1:
+            msg = f"Multiple CurveOrderResponse found for auction_id: {auction_id}"
+            raise ValueError(msg)
+
+        return matching_orders[0].order_id if matching_orders else None
+
+    def count_by_state_and_type(self) -> dict[str, dict[str, int]]:
+        """
+        Count orders by state and type and state from a CombinedOrdersResponse.
+        Returns a dictionary with order types as keys and state counts as nested dictionaries.
+        """
+        result = {"CurveOrder": defaultdict(int), "BlockOrder": defaultdict(int)}
+
+        # Count Curve Orders
+        if self.curve_orders:
+            for order in self.curve_orders:
+                state = order.state.value if order.state else "None"
+                result["CurveOrder"][state] += 1
+
+        # Count Block Orders
+        if self.block_lists:
+            for block_list in self.block_lists:
+                if block_list.blocks:
+                    for block in block_list.blocks:
+                        state = block.state.value if block.state else "None"
+                        result["BlockOrder"][state] += 1
+
+        # Convert defaultdict to regular dict for clean output
+        return {"CurveOrder": dict(result["CurveOrder"]), "BlockOrder": dict(result["BlockOrder"])}
 
 
 class OrderResultResponse(BaseModel, extra="forbid"):
