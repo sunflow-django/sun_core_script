@@ -23,6 +23,7 @@ MSG_TZ = "datetime must be timezone-aware"
 MSG_LAT = "Latitude must be between -90 and 90"
 MSG_LON = "Longitude must be between -180 and 180"
 
+
 class ForecastType(str, Enum):
     """
     Enum for forecast types.
@@ -59,9 +60,6 @@ class AuthToken(BaseModel, extra="forbid"):
     model_config = ConfigDict(populate_by_name=True)
 
     auth_token: Annotated[str, Field(description="API token")]
-
-
-
 
 
 class Installation(BaseModel, extra="forbid"):
@@ -120,13 +118,6 @@ class Alert(BaseModel, extra="forbid"):
         Field(default_factory=lambda: datetime.now(tz=PARIS_TZ), description="Date of creation"),
     ]
     closed_at: Annotated[datetime | None, Field(description="Potential close date")] = None
-
-    @field_validator("created_at", "closed_at")
-    @classmethod
-    def validate_timezone(cls, v: datetime | None) -> datetime | None:
-        if v is not None and v.tzinfo is None:
-            raise ValueError(MSG_TZ)
-        return v
 
 
 class AlertList(RootModel):

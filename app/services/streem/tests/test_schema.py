@@ -248,13 +248,14 @@ class TestAlert:
         assert alert.type == "123"
         assert alert.installation_name == "Test Plant"
 
-    def test_invalid_timezone(self) -> None:
-        with pytest.raises(ValidationError, match="Value error, datetime must be timezone-aware"):
-            Alert(
-                type="warning",
-                installation_name="Test Plant",
-                created_at=datetime.now(tz=None),
-            )
+    def test_no_time_zone(self) -> None:
+        alert = Alert(
+            type="error",
+            installation_name="Test Plant",
+            created_at=datetime.now(tz=None),  # noqa: DTZ005
+        )
+        assert alert.type == "error"
+        assert alert.installation_name == "Test Plant"
 
     def test_json_serialization(self, valid_alert: Alert) -> None:
         json_data = valid_alert.model_dump_json()
@@ -305,7 +306,7 @@ class TestLoadCurvePoint:
 
     def test_invalid_timezone(self) -> None:
         with pytest.raises(ValidationError, match="Value error, datetime must be timezone-aware"):
-            LoadCurvePoint(data=DATA, date=datetime.now(tz=None))
+            LoadCurvePoint(data=DATA, date=datetime.now(tz=None))  # noqa: DTZ005
 
     def test_json_serialization(self, valid_load_curve_point: LoadCurvePoint) -> None:
         json_data = valid_load_curve_point.model_dump_json()
