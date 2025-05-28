@@ -63,7 +63,6 @@ class GetInstallationForecastInput(BaseModel, extra="forbid"):
             raise ValueError(start_date_tz)
         if self.end_date is not None and self.end_date.tzinfo is None:
             raise ValueError(end_date_tz)
-
         # Check if one is provided and the other is not
         if (self.start_date is None) != (self.end_date is None):
             raise ValueError(missing_date_error)
