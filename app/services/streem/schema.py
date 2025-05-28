@@ -7,9 +7,21 @@ from pydantic import BaseModel
 from pydantic import ConfigDict
 from pydantic import Field
 from pydantic import RootModel
+from pydantic import field_validator
 
 from app.constants.time_zones import PARIS_TZ
 
+
+# Constants
+MIN_LAT = -90
+MAX_LAT = 90
+MIN_LON = -180
+MAX_LON = 180
+
+# Messages
+MSG_TZ = "datetime must be timezone-aware"
+MSG_LAT = "Latitude must be between -90 and 90"
+MSG_LON = "Longitude must be between -180 and 180"
 
 class ForecastType(str, Enum):
     """
@@ -49,6 +61,9 @@ class AuthToken(BaseModel, extra="forbid"):
     auth_token: Annotated[str, Field(description="API token")]
 
 
+
+
+
 class Installation(BaseModel, extra="forbid"):
     """Schema for one installation."""
 
@@ -60,6 +75,20 @@ class Installation(BaseModel, extra="forbid"):
     latitude: Annotated[float | None, Field(description="Latitude (in degrees)")] = None
     longitude: Annotated[float | None, Field(description="Longitude (in degrees)")] = None
     name: Annotated[str, Field(description="Name of the installation")]
+
+    @field_validator("latitude")
+    @classmethod
+    def validate_latitude(cls, v: float | None) -> float | None:
+        if v is not None and not MIN_LAT <= v <= MAX_LAT:
+            raise ValueError(MSG_LAT)
+        return v
+
+    @field_validator("longitude")
+    @classmethod
+    def validate_longitude(cls, v: float | None) -> float | None:
+        if v is not None and not MIN_LON <= v <= MAX_LON:
+            raise ValueError(MSG_LON)
+        return v
 
 
 class InstallationList(RootModel):
@@ -92,6 +121,13 @@ class Alert(BaseModel, extra="forbid"):
     ]
     closed_at: Annotated[datetime | None, Field(description="Potential close date")] = None
 
+    @field_validator("created_at", "closed_at")
+    @classmethod
+    def validate_timezone(cls, v: datetime | None) -> datetime | None:
+        if v is not None and v.tzinfo is None:
+            raise ValueError(MSG_TZ)
+        return v
+
 
 class AlertList(RootModel):
     """Schema for a list of alerts."""
@@ -109,6 +145,13 @@ class LoadCurvePoint(BaseModel, extra="forbid"):
 
     data: Annotated[float | None, Field(description="Time series value")] = None
     date: Annotated[datetime, Field(default_factory=lambda: datetime.now(tz=PARIS_TZ), description="Date time")]
+
+    @field_validator("date")
+    @classmethod
+    def validate_timezone(cls, v: datetime | None) -> datetime | None:
+        if v is not None and v.tzinfo is None:
+            raise ValueError(MSG_TZ)
+        return v
 
 
 class LoadCurve(RootModel):
