@@ -202,21 +202,21 @@ class TestLoadCurve:
     """Tests for LoadCurve class"""
 
     def test_empty_load_curve(self) -> None:
-        curve = LoadCurve(points=[])
-        assert isinstance(curve.points, list)
-        assert len(curve.points) == 0
+        curve = LoadCurve([])
+        assert isinstance(curve.root, list)
+        assert len(curve.root) == 0
 
     def test_multiple_points(self) -> None:
         date1 = datetime.now(tz=PARIS_TZ)
         date2 = datetime.now(tz=PARIS_TZ)
-        curve = LoadCurve(points=[LoadCurvePoint(data=DATA, date=date1), LoadCurvePoint(data=DATA2, date=date2)])
-        assert len(curve.points) == EXPECTED_POINTS_COUNT
-        assert curve.points[0].data == DATA
-        assert curve.points[0].date == date1
-        assert curve.points[1].data == DATA2
-        assert curve.points[1].date == date2
+        curve = LoadCurve(root=[LoadCurvePoint(data=DATA, date=date1), LoadCurvePoint(data=DATA2, date=date2)])
+        assert len(curve.root) == EXPECTED_POINTS_COUNT
+        assert curve.root[0].data == DATA
+        assert curve.root[0].date == date1
+        assert curve.root[1].data == DATA2
+        assert curve.root[1].date == date2
 
     def test_load_curve_alias(self) -> None:
-        curve = LoadCurve(points=[{"data": DATA, "date": datetime.now(tz=PARIS_TZ)}])
-        assert len(curve.points) == 1
-        assert curve.points[0].data == DATA
+        curve = LoadCurve(root=[{"data": DATA, "date": datetime.now(tz=PARIS_TZ)}])
+        assert len(curve.root) == 1
+        assert curve.root[0].data == DATA

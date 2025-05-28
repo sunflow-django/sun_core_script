@@ -111,7 +111,7 @@ class LoadCurvePoint(BaseModel, extra="forbid"):
     date: Annotated[datetime, Field(default_factory=lambda: datetime.now(tz=PARIS_TZ), description="Date time")]
 
 
-class LoadCurve(BaseModel, extra="forbid"):
+class LoadCurve(RootModel):
     """Schema for load curve data."""
 
-    points: list[LoadCurvePoint] = Field(default_factory=list, alias="points")
+    root: list[LoadCurvePoint]
