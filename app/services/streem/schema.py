@@ -12,7 +12,11 @@ from app.constants.time_zones import PARIS_TZ
 
 
 class ForecastType(str, Enum):
-    """Enum for forecast types."""
+    """
+    Enum for forecast types.
+    - Generation: Generation timeseries (active power)
+    - Dispatch_Program: Day-ahead Production Schedule
+    """
 
     GENERATION = "Generation"
     DISPATCH_PROGRAM = "Dispatch_Program"
