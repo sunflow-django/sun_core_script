@@ -85,7 +85,7 @@ def main(
     api = StreemAPI(username, password)
 
     try:
-        forecast_data = api.get_forecast(
+        forecast_data = api.get_installation_forecast(
             name=name,
             forecast_type=ForecastType.GENERATION,
             start_date=start_date,
